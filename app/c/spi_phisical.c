@@ -23,7 +23,7 @@ void Cs_Lo     ( void ) { GPIOPinReset ( GPIO_PORTN_BASE ,GPIO_PIN_2 );}
 void Rst_Hi    ( void ) { GPIOPinSet   ( GPIO_PORTN_BASE ,GPIO_PIN_3 );}
 void Rst_Lo    ( void ) { GPIOPinReset ( GPIO_PORTN_BASE ,GPIO_PIN_3 );}
 
-bool Busy_Read ( void ) { GPIOPinRead ( GPIO_PORTP_BASE ,GPIO_PIN_2 ) ;}
+bool Busy_Read ( void ) { return GPIOPinRead ( GPIO_PORTP_BASE ,GPIO_PIN_2 ) ;}
 
 void  Init_Spi_Phisical (void)
 {
@@ -40,14 +40,14 @@ void  Init_Spi_Phisical (void)
     GPIOPinConfigure(GPIO_PD0_SSI2XDAT1);
     GPIOPinConfigure(GPIO_PD3_SSI2CLK);
     GPIOPinTypeSSI(GPIO_PORTD_BASE, GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_3 );
-    SSIConfigSetExpClk(SSI2_BASE, configCPU_CLOCK_HZ, SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, SSI_BIT_RATE, 8);
+    SSIConfigSetExpClk(SSI2_BASE, configCPU_CLOCK_HZ, SSI_FRF_MOTO_MODE_3, SSI_MODE_MASTER, SSI_BIT_RATE, 8);
     SSIEnable(SSI2_BASE);
     //CS
     MAP_GPIOPinTypeGPIOOutput ( GPIO_PORTN_BASE,GPIO_PIN_2 );
     Cs_Hi();
     //reset
     MAP_GPIOPinTypeGPIOOutput ( GPIO_PORTN_BASE,GPIO_PIN_3 );
-    Rst_Lo();
+    Rst_Hi();
     //Busy 
     MAP_GPIOPinTypeGPIOInput ( GPIO_PORTP_BASE,GPIO_PIN_2 );
 
@@ -56,51 +56,19 @@ void  Init_Spi_Phisical (void)
 
 }
 //-------------------------------------------------------------
-//-------------------------------------------------------------
-void Send_Cmd2Spi(unsigned char Cmd,unsigned char* Params)
+void Send_Cmd2Spi(uint8_t* Params,uint8_t Len)
 {
-   uint32_t A;
-   Cs_Lo();
-   Cs_Hi();
-   MAP_SSIDataPut(SSI2_BASE,Cmd);
-   MAP_SSIDataGet(SSI2_BASE,&A);
-   UART_ETHprintf(NULL,"Spi received %d \r\n",(uint8_t) A);
-   Cs_Lo();
-   Cs_Hi();
+   uint32_t Ans;
+   uint8_t i;
 
-   MAP_SSIDataPut(SSI2_BASE,Params[0]);
-   MAP_SSIDataGet(SSI2_BASE,&A);
-   Params[0]=(uint8_t)A;
-   UART_ETHprintf(NULL,"Spi received %d \r\n",Params[0]);
-   Cs_Lo();
-   Cs_Hi();
-
-   SSIDataPut(SSI2_BASE,Params[1]);
-   SSIDataGet(SSI2_BASE,&A);
-   Params[1]=(uint8_t)A;
-   UART_ETHprintf(NULL,"Spi received %d \r\n",Params[1]);
-   Cs_Hi();
-   Cs_Lo();
-
-   SSIDataPut(SSI2_BASE,Params[2]);
-   SSIDataGet(SSI2_BASE,&A);
-   Params[2]=(uint8_t)A;
-   UART_ETHprintf(NULL,"Spi received %d \r\n",Params[2]);
-
-   Cs_Lo();
-}
-
-void Step01_Get_Status(void)
-{
-   uint8_t P[3]={0,0,0};
-   UART_ETHprintf ( NULL,"Get_Status\r\n" );
-   Send_Cmd2Spi   ( Get_Status_Cmd,P      );
-}
-void Step01_Run(void)
-{
-   uint8_t P[3]={1,2,3};
-   UART_ETHprintf ( NULL, "Run\r\n" );
-   Send_Cmd2Spi   ( Run_Dir_Cmd,P   );
+   for(i=0;i<Len;i++) {
+      Cs_Lo();
+      MAP_SSIDataPut(SSI2_BASE,Params[i]);
+      MAP_SSIDataGet(SSI2_BASE,&Ans);
+      UART_ETHprintf(NULL,"Command=0x%x - Ans=0x%x\r\n",Params[i],(uint8_t) Ans);
+      Params[i]=(uint8_t)Ans;
+      Cs_Hi();
+   }
 }
 //----------------------------------------------------------------------------------------------------
 

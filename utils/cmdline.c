@@ -170,7 +170,9 @@ void CmdLineProcess(char *pcCmdLine,struct tcp_pcb* tpcb)
             //
             if(!strcmp(g_ppcArgv[0], psCmdEntry->pcCmd))
             {
+                uint8_t i;
                 psCmdEntry->pfnCmd(tpcb, ui8Argc, g_ppcArgv);
+                for(i=1;i<ui8Argc;i++) (g_ppcArgv[i]-1)[0] = ' ';
                 goto prompt;
             }
 

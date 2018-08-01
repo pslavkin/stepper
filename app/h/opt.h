@@ -9,6 +9,6 @@
 
 
 
-#define SSI_BIT_RATE  1000000
+#define SSI_BIT_RATE  10000
 
 #endif // __COMMANDS_H__

@@ -31,11 +31,11 @@ extern void Rst_Hi            ( void );
 extern void Rst_Lo            ( void );
 extern bool Busy_Read         ( void );
 // ------------------------------------------------------
-extern void          Send_Data2Spi      ( void                                    );
+extern void    Send_Data2Spi     ( void                        );
 // ------------------------------------------------------
-extern void          Send_Cmd2Spi       ( unsigned char Cmd,unsigned char* Params );
-extern void          Step01_Get_Status  ( void                                    );
-extern void          Step01_Run         ( void                                    );
+extern void    Send_Cmd2Spi      ( uint8_t* Params,uint8_t Len );
+extern void    Step01_Get_Status ( void                        );
+extern void    Step01_Run        ( void                        );
 //------------------------------------------------------
 
 #endif

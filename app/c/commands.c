@@ -1,6 +1,7 @@
 //*****************************************************************************
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include "driverlib/sysctl.h"
 #include "driverlib/emac.h"
@@ -24,15 +25,15 @@
 //*****************************************************************************
 tCmdLineEntry g_psCmdTable[] =
 {
-    { "help" ,Cmd_help        ,": Display list of commands" } ,
-    { "h"    ,Cmd_help        ,": alias for help" }           ,
-    { "?"    ,Cmd_help        ,": alias for help" }           ,
-    { "Mac"  ,Cmd_Mac         ,": show MAC address" }         ,
-    { "ip"   ,Cmd_Ip          ,": show IP address" }          ,
-    { "task" ,Cmd_TaskList    ,": lista de tareas" }          ,
-    { "link" ,Cmd_Links_State ,": Estado del link ethernet" } ,
-    { "spi1" ,Cmd_Spi_Cmd     ,": Manda comando x spi" }      ,
-    { "spi2" ,Cmd_Spi_Status  ,": Lee estado del spi" }       ,
+    { "help" ,Cmd_help              ,": Display list of commands" }               ,
+    { "h"    ,Cmd_help              ,": alias for help" }                         ,
+    { "?"    ,Cmd_help              ,": alias for help" }                         ,
+    { "Mac"  ,Cmd_Mac               ,": show MAC address" }                       ,
+    { "ip"   ,Cmd_Ip                ,": show IP address" }                        ,
+    { "task" ,Cmd_TaskList          ,": lista de tareas" }                        ,
+    { "link" ,Cmd_Links_State       ,": Estado del link ethernet" }               ,
+    { "sa"   ,Cmd_Spi_App_Cmd       ,": Send app comand x spi ej: sp 208 0 0 0" } ,
+    { "gp"   ,Cmd_Spi_Get_Param_Cmd ,": Get param comand x spi ej: sp 5" }        ,
     { 0      ,0               ,0 }
 };
 
@@ -42,8 +43,6 @@ tCmdLineEntry g_psCmdTable[] =
 // available commands with a brief description.
 //
 //*****************************************************************************
-
-
 int Cmd_help(struct tcp_pcb* tpcb, int argc, char *argv[])
 {
     tCmdLineEntry *pEntry;
@@ -93,14 +92,21 @@ int Cmd_Links_State(struct tcp_pcb* tpcb, int argc, char *argv[])
    UART_ETHprintf(tpcb,"PHY=%d",EMACPHYLinkUp());
    return 0;
 }
-int Cmd_Spi_Cmd(struct tcp_pcb* tpcb, int argc, char *argv[])
+int Cmd_Spi_App_Cmd(struct tcp_pcb* tpcb, int argc, char *argv[])
 {
-   Step01_Run ( );
+   uint8_t i,param[4];
+   argc--;
+   for(i=0;i<argc && i<sizeof(param);i++) {
+      param[i]=atoi(argv[i+1]);
+   }
+   Send_Cmd2Spi ( param,i );
    return 0;
 }
-int Cmd_Spi_Status(struct tcp_pcb* tpcb, int argc, char *argv[])
+int Cmd_Spi_Get_Param_Cmd(struct tcp_pcb* tpcb, int argc, char *argv[])
 {
-   Step01_Get_Status ( );
+   uint8_t param[4]={0};
+   param[0]=atoi(argv[1]) | 0x20;
+   Send_Cmd2Spi ( param,4 );
    return 0;
 }
 //*****************************************************************************
@@ -116,17 +122,20 @@ int Cmd_Spi_Status(struct tcp_pcb* tpcb, int argc, char *argv[])
 //*****************************************************************************
 void User_Commands_Task(void* nil)
 {
+   char* Buff =(char*)pvPortMalloc(APP_INPUT_BUF_SIZE);
+   int len;
    while(1) {
       if(UARTPeek('\r') != -1) {
-         char* Buff =(char*)pvPortMalloc(APP_INPUT_BUF_SIZE);
-         while(UARTPeek('\r') != -1)
-         {
-           UARTgets(Buff, APP_INPUT_BUF_SIZE);
-           CmdLineProcess(Buff,NULL);
+         while((len=UARTPeek('\r')) != -1) {
+            if(len!=0)
+               UARTgets       ( Buff, APP_INPUT_BUF_SIZE );
+            else
+               UARTFlushRx();
+            CmdLineProcess ( Buff,NULL);
          }
-        vPortFree(Buff);
       }
       vTaskDelay( 100 / portTICK_RATE_MS );
    }
+  vPortFree(Buff);
 
 }
