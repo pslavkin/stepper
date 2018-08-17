@@ -5,7 +5,7 @@
 #define APP_INPUT_BUF_SIZE      128
 #define UART_BUFFERED
 #define UART_RX_BUFFER_SIZE     128
-#define UART_TX_BUFFER_SIZE     512
+#define UART_TX_BUFFER_SIZE     2048
 
 
 #define USR_FLASH_START 0x00020000                          //donde te plazca que no pise codigo. y que este alineado a 4

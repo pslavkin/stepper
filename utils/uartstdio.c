@@ -872,7 +872,6 @@ UART_ETHprintf(struct tcp_pcb* tpcb,const char *pcString, ...)
 {
    va_list vaArgP;
    int len;
-    // Start the varargs processing.
      va_start(vaArgP, pcString);
      len=uvsnprintf(Buff,UART_TX_BUFFER_SIZE,pcString, vaArgP);
      if(tpcb==UART_MSG || tpcb==DEBUG_MSG)
@@ -880,7 +879,6 @@ UART_ETHprintf(struct tcp_pcb* tpcb,const char *pcString, ...)
      else
         tcp_write(tpcb,Buff,len<UART_TX_BUFFER_SIZE?len:UART_TX_BUFFER_SIZE,
                    TCP_WRITE_FLAG_COPY);//|TCP_WRITE_FLAG_MORE);
-//    // We're finished with the varargs now.
     va_end(vaArgP);
 }
 }

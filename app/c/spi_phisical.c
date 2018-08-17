@@ -78,25 +78,28 @@ void Send_Cmd2Spi(struct tcp_pcb* tpcb,uint8_t* Params,uint8_t Len)
       Cs_Hi();
    }
 }
-
-void Init_Powerstep_Regs(struct tcp_pcb* tpcb)
+void Send_Cmd2Spi4Int(struct tcp_pcb* tpcb,uint8_t Cmd, uint8_t P, uint32_t N)
+{
+   uint8_t Data[4]={P|Cmd,(N & 0x0F0000 )>>16,(N & 0x00FF00)>> 8,(N & 0x0000FF)>> 0};
+   Send_Cmd2Spi (tpcb,Data,4);
+}
+void Init_Powerstep(struct tcp_pcb* tpcb)
 {
    uint8_t p[]= { 9  ,150 ,10 ,150 ,11 ,150 ,12 ,150 , // compensacion de vss
                   26 ,44  ,8  ,                        // que no se apague el puente si salta overcurrente
                   5  ,0   ,10 ,6   ,0  ,10};           // aceleracion y descaeleracion
    Send_Cmd2Spi(tpcb,p,sizeof p);
 }
-void Toogle_Pulse(uint32_t Pulses, bool Dir)
+void Toogle_Pulses(uint32_t Pulses)
 {
    uint32_t i;
    for ( i=0;i<Pulses;i++ ) {
       Pulse_Lo();
-      vTaskDelay ( pdMS_TO_TICKS(1 ));
+      Delay_Useg(100);
       Pulse_Hi();
-      vTaskDelay ( pdMS_TO_TICKS(1 ));
+      Delay_Useg(100);  //uso esto porque no anda vtaskdelay para tiempos cortos.. tengo el tick en 100hz
    }
 }
-
 
 void Busy_Read_Task(void* nil)
 {
