@@ -34,15 +34,15 @@
 #if defined(EMAC_PHY_IS_EXT_MII)
 #define EMAC_PHY_CONFIG  EMAC_PHY_TYPE_EXTERNAL_MII
 #define PHY_PHYS_ADDR      1
-//#define EEE_SUPPORT        1
+#define EEE_SUPPORT        0
 #endif
 #if defined(EMAC_PHY_IS_EXT_RMII)
 #define EMAC_PHY_CONFIG  EMAC_PHY_TYPE_EXTERNAL_RMII
 #define PHY_PHYS_ADDR      1
-//#define EEE_SUPPORT        1
+#define EEE_SUPPORT        0
 #endif
-#define NUM_TX_DESCRIPTORS 24
-#define NUM_RX_DESCRIPTORS 8
+#define NUM_TX_DESCRIPTORS 32
+#define NUM_RX_DESCRIPTORS 16
 
 //*****************************************************************************
 //
@@ -64,10 +64,10 @@
 //
 //*****************************************************************************
 //#define MEM_LIBC_MALLOC                 0
-#define MEM_ALIGNMENT                   4           // default is 1
-#define MEM_SIZE                        (64 * 1024)  // default is 1600
-//#define MEMP_OVERFLOW_CHECK             0
-//#define MEMP_SANITY_CHECK               0
+#define MEM_ALIGNMENT                   4          // default is 1
+#define MEM_SIZE                        (64*1024)  // con 2k no anda con 16, anda 2 horas
+#define MEMP_OVERFLOW_CHECK             0
+#define MEMP_SANITY_CHECK               0
 //#define MEM_USE_POOLS                   0
 //#define MEMP_USE_CUSTOM_POOLS           0
 
@@ -76,21 +76,21 @@
 // ---------- Internal Memory Pool Sizes ----------
 //
 //*****************************************************************************
-#define MEMP_NUM_PBUF                     48    // Default 16
+#define MEMP_NUM_PBUF                     64    // Default 16
 //#define MEMP_NUM_RAW_PCB                4
-//#define MEMP_NUM_UDP_PCB                4
-#define MEMP_NUM_TCP_PCB                  16    // Default 5
-//#define MEMP_NUM_TCP_PCB_LISTEN         8
-#define MEMP_NUM_TCP_SEG                  32  // Default 16
+#define MEMP_NUM_UDP_PCB                  1
+#define MEMP_NUM_TCP_PCB                  3    // Default 5
+#define MEMP_NUM_TCP_PCB_LISTEN           1
+#define MEMP_NUM_TCP_SEG                  16  // Default 16
 //#define MEMP_NUM_REASSDATA              5
 //#define MEMP_NUM_ARP_QUEUE              30
 //#define MEMP_NUM_IGMP_GROUP             8
-#define MEMP_NUM_SYS_TIMEOUT              8
-//#define MEMP_NUM_NETBUF                 2
-//#define MEMP_NUM_NETCONN                4
-//#define MEMP_NUM_TCPIP_MSG_API          8
-//#define MEMP_NUM_TCPIP_MSG_INPKT        8
-#define PBUF_POOL_SIZE                    48    // Default 16
+#define MEMP_NUM_SYS_TIMEOUT              16
+#define MEMP_NUM_NETBUF                   0
+#define MEMP_NUM_NETCONN                  0
+#define MEMP_NUM_TCPIP_MSG_API            20
+#define MEMP_NUM_TCPIP_MSG_INPKT          20
+#define PBUF_POOL_SIZE                    32    // Default 16
 
 //*****************************************************************************
 //
@@ -210,20 +210,20 @@
 // ---------- TCP options ----------
 //
 //*****************************************************************************
-//#define LWIP_TCP                        1
+#define LWIP_TCP                        1
 //#define TCP_TTL                         (IP_DEFAULT_TTL)
-#define TCP_WND                         512   // default is 2048
+#define TCP_MSS                         536            // default is 536
+#define TCP_WND                         (2*TCP_MSS+16) // default is 2048
+#define TCP_SND_BUF                     (2 * TCP_MSS+16)
 //#define TCP_MAXRTX                      12
 //#define TCP_SYNMAXRTX                   6
 //#define TCP_QUEUE_OOSEQ                 1
-#define TCP_MSS                        512        // default is 535
 //#define TCP_CALCULATE_EFF_SEND_MSS      1
-#define TCP_SND_BUF                     (2 * TCP_MSS)
                                                     // default is 256
 //#define TCP_SND_QUEUELEN                (4 * (TCP_SND_BUF/TCP_MSS))
 //#define TCP_SNDLOWAT                    (TCP_SND_BUF/2)
-#define TCP_LISTEN_BACKLOG              1
-#define TCP_DEFAULT_LISTEN_BACKLOG      1
+#define TCP_LISTEN_BACKLOG              0
+#define TCP_DEFAULT_LISTEN_BACKLOG      3
 
 //*****************************************************************************
 //
@@ -238,10 +238,9 @@
 // ---------- Pbuf options ----------
 //
 //*****************************************************************************
-#define PBUF_LINK_HLEN                  16          // default is 14
-#define PBUF_POOL_BUFSIZE               512
-                   // default is LWIP_MEM_ALIGN_SIZE(TCP_MSS+40+PBUF_LINK_HLEN)
-#define ETH_PAD_SIZE                    0           // default is 0
+#define PBUF_LINK_HLEN                  16
+#define ETH_PAD_SIZE                    0
+#define PBUF_POOL_BUFSIZE          (LWIP_MEM_ALIGN_SIZE(TCP_MSS+40+PBUF_LINK_HLEN)+16)
 
 //*****************************************************************************
 //
@@ -251,7 +250,7 @@
 //#define LWIP_NETIF_HOSTNAME             0
 //#define LWIP_NETIF_API                  0
 //#define LWIP_NETIF_STATUS_CALLBACK      0
-#define LWIP_NETIF_LINK_CALLBACK        1
+#define LWIP_NETIF_LINK_CALLBACK        0
 //#define LWIP_NETIF_HWADDRHINT           0
 
 //*****************************************************************************
@@ -268,10 +267,10 @@
 //
 //*****************************************************************************
 #define TCPIP_THREAD_NAME              "tcpip_thread"
-//dale 1024 o se ahoga....
-#define TCPIP_THREAD_STACKSIZE          2600 
-#define TCPIP_THREAD_PRIO               3
-#define TCPIP_MBOX_SIZE                 32
+//ble 1024 o se ahoga....
+#define TCPIP_THREAD_STACKSIZE          (4*1024)
+#define TCPIP_THREAD_PRIO               1
+#define TCPIP_MBOX_SIZE                 64
 //#define SLIPIF_THREAD_NAME             "slipif_loop"
 //#define SLIPIF_THREAD_STACKSIZE         0
 //#define SLIPIF_THREAD_PRIO              1
@@ -312,7 +311,7 @@
 // ---------- Statistics options ----------
 //
 //*****************************************************************************
-//#define LWIP_STATS                      1
+#define LWIP_STATS                      0
 //#define LWIP_STATS_DISPLAY              0
 //#define LINK_STATS                      1
 //#define ETHARP_STATS                    (LWIP_ARP)
@@ -324,7 +323,7 @@
 //#define TCP_STATS                       (LWIP_TCP)
 //#define MEM_STATS                       1
 //#define MEMP_STATS                      1
-//#define SYS_STATS                       1
+//#define SYS_STATS                       0
 
 //*****************************************************************************
 //
@@ -388,12 +387,12 @@
 #define S32_F "d"
 #define X32_F "x"
 extern void UARTprintf(const char *pcString, ...);
-#define LWIP_PLATFORM_DIAG(msg) do {UARTprintf msg;} while(0)
+#define LWIP_PLATFORM_DIAG(msg) do {UARTprintf msg ;} while(0)
 #define LWIP_DEBUG
 #endif
 
-//#define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_OFF
-#define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_ALL
+#define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_OFF
+//#define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_ALL
 //#define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_WARNING
 //#define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_SERIOUS
 //#define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_SEVERE
@@ -411,7 +410,7 @@ extern void UARTprintf(const char *pcString, ...);
 #define ICMP_DEBUG                      LWIP_DBG_OFF
 #define IGMP_DEBUG                      LWIP_DBG_OFF
 #define INET_DEBUG                      LWIP_DBG_OFF
-#define IP_DEBUG                        LWIP_DBG_OFF    // default is OFF
+#define IP_DEBUG                        LWIP_DBG_OFF   // default is OFF
 #define IP_REASS_DEBUG                  LWIP_DBG_OFF
 #define RAW_DEBUG                       LWIP_DBG_OFF
 #define MEM_DEBUG                       LWIP_DBG_OFF

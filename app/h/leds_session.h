@@ -13,10 +13,11 @@
 #include "semphr.h"
 //-----------------------------------------------------------
 extern SemaphoreHandle_t Led_Eth_Data_Semphr;
-void Led_Link_Task        ( void* nil );
-void Led_Eth_Data_Task    ( void* nil );
-void vApplicationIdleHook ( void      );
-void Init_Leds            ( void      );
+extern void Init_Led_Eth_Data    ( void      );
+extern void Led_Link_Task        ( void* nil );
+extern void Led_Eth_Data_Task    ( void* nil );
+extern void vApplicationIdleHook ( void      );
+extern void Init_Leds            ( void      );
 //----------------------------------------------------
 //degino la posicino de los leds en el puerto N
 #define LED_RUN_PIN      GPIO_PIN_1

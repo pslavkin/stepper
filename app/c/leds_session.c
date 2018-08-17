@@ -47,12 +47,14 @@ void vApplicationIdleHook(void)
 
 
 SemaphoreHandle_t Led_Eth_Data_Semphr;
-
-void Led_Eth_Data_Task ( void* nil )
+void Init_Led_Eth_Data(void)
 {
    MAP_SysCtlPeripheralEnable (LED_ETH_DATA_PERIPH);
    MAP_GPIOPinTypeGPIOOutput  (LED_ETH_DATA_PORT,LED_ETH_DATA_PIN);
    Led_Eth_Data_Semphr = xSemaphoreCreateCounting(20,0);
+}
+void Led_Eth_Data_Task ( void* nil )
+{
    while(1) {
       GPIOPinReset   ( LED_ETH_DATA_PORT,LED_ETH_DATA_PIN ) ;
       xSemaphoreTake ( Led_Eth_Data_Semphr, portMAX_DELAY    ) ;

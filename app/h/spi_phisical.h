@@ -23,19 +23,19 @@ enum Step01_App_Cmd {
    Get_Status_Cmd   = 0xD0    //0b_1101_0000,
 };
 //------------------------------------------------------
-//------------------------------------------------------
-extern void Init_Spi_Phisical ( void );
-extern void Cs_Hi             ( void );
-extern void Cs_Lo             ( void );
-extern void Rst_Hi            ( void );
-extern void Rst_Lo            ( void );
-extern bool Busy_Read         ( void );
+extern void    Init_Spi_Phisical ( void );
+extern void    Cs_Hi             ( void );
+extern void    Cs_Lo             ( void );
+extern void    Rst_Hi            ( void );
+extern void    Rst_Lo            ( void );
+extern bool    Busy_Read         ( void );
 // ------------------------------------------------------
 extern void    Send_Data2Spi     ( void                        );
 // ------------------------------------------------------
-extern void    Send_Cmd2Spi      ( uint8_t* Params,uint8_t Len );
-extern void    Step01_Get_Status ( void                        );
-extern void    Step01_Run        ( void                        );
+extern void    Send_Cmd2Spi        ( struct tcp_pcb* tpcb,uint8_t* Params,uint8_t Len );
+extern void    Toogle_Pulse        ( uint32_t Pulses, bool Dir                        );
+extern void    Init_Powerstep_Regs ( struct tcp_pcb* tpcb                             );
+extern void    Busy_Read_Task      ( void* nil                                        );
 //------------------------------------------------------
 
 #endif

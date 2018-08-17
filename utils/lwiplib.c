@@ -1240,6 +1240,9 @@ lwIPPrivateNetworkConfigChange(void *pvArg)
         //
         case IPADDR_USE_STATIC:
         {
+        ip_addr.addr = htonl(g_ui32IPAddr);
+        net_mask.addr = htonl(g_ui32NetMask);
+        gw_addr.addr = htonl(g_ui32GWAddr);
             //
             // Set the new address parameters.  This will change the address
             // configuration in lwIP, and if necessary, will reset any links

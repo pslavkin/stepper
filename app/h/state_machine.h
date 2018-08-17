@@ -10,24 +10,21 @@
 //------------------------------------------------------------------
 typedef struct Efn      //Event-Function-Next
  {
-   unsigned int Event;
-   void (*Func) (void);
+   uint16_t          Event;
+   void              (*Func) (void);
    const struct Efn *Next_State;
  } State;
 //------------------------------------------------------------------
-//#define Atomic(Function)   {CPUcpsid();Function;CPUcpsie();}
 #define Atomic(Function)   {MAP_IntMasterDisable();Function;MAP_IntMasterEnable();}
 //------------------------------------------------------------------
 void           Rien          ( void                                         );
 void           Set_State     ( const State* New_State,const State** Machine );
-unsigned int   Actual_Event  ( void                                         );
+uint16_t       Actual_Event  ( void                                         );
 const State**  Actual_Sm     ( void                                         );
-void           State_Machine ( void* nil                                         ); // maquina principal de principales que ejecuta la maquina de estados...
+void           State_Machine ( void* nil                                    ); // maquina principal de principales que ejecuta la maquina de estados...
 const State**  Empty_Sm      ( void                                         );
-const State*   Empty_App     ( void                                         );
 void           Soft_Reset    ( void                                         );
-// void     Delay_100useg  (void);
-void           Delay_Useg    ( unsigned int Useg                            );
+extern void    Delay_Useg    ( uint32_t d                                   );
 //------------------------------------------------------------------
 #define  Empty_State_Machine     ((const State**)0x00000000)
 

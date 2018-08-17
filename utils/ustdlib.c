@@ -23,8 +23,10 @@
 //*****************************************************************************
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "driverlib/debug.h"
 #include "utils/ustdlib.h"
+#include "utils/uartstdio.h"
 
 //*****************************************************************************
 //
@@ -40,6 +42,23 @@
 //
 //*****************************************************************************
 static const char * const g_pcHex = "0123456789abcdef";
+
+char* ctohex(char* Bcd,uint8_t Bin)
+{
+   uint8_t i;
+      Bcd[0]=Bin/16;
+      Bcd[1]=Bin%16;
+   for (i=0;i<2;i++) 
+      Bcd[i]+=(Bcd[i]>9)?('A'-10):'0';
+   return Bcd;
+}
+
+//esta la escribo yo.. aprende.. 1 linea de codigo
+uint8_t hextoc(char* Bcd)
+{
+      return (Bcd[0]-(Bcd[0]>='A'?('A'-10):'0'))*16 +
+             (Bcd[1]-(Bcd[1]>='A'?('A'-10):'0'))*1;
+}
 
 //*****************************************************************************
 //
@@ -102,6 +121,31 @@ ustrncpy(char * restrict s1, const char * restrict s2, size_t n)
     //
     return(s1);
 }
+
+//float to string a manopla
+//
+char* ftostr  (float fVal,char* str,uint8_t size)
+{
+    int32_t Entera, Dec;
+    uint8_t  Len;
+    char Sign[]="+";
+
+    Entera = fVal;
+    Dec = (int32_t)(fVal * 1000);
+    Dec %= 1000;
+    if(fVal<0) {
+       Dec=-Dec;
+       Entera=-Entera;
+       Sign[0]='-';
+    }
+    Len=usnprintf(str,size-6,"%s%03d",Sign,Entera);
+    str[Len++] = '.';
+    usnprintf(str+Len,size-Len-6,"%03d",Dec);
+    return str;
+}
+
+
+
 
 //*****************************************************************************
 //
@@ -443,6 +487,26 @@ again:
                     //
                     break;
                 }
+                //
+                // Handle the %H command. Agregado por pslavkin
+                //
+                case 'H':
+                {
+                    //
+                    // Get the string pointer from the varargs.
+                    //
+                    pcStr = va_arg(arg, char *);
+                    uint8_t len=va_arg(arg, int);
+
+                    for(ulIdx = 0; n>1 &&  ulIdx<len ; ulIdx++)
+                    {
+                        ctohex(s,pcStr[ulIdx]);
+                        s+=2;
+                        n-=2;
+                    }
+                     iConvertCount += len*2;
+                    break;
+                }
 
                 //
                 // Handle the %u command.
@@ -472,11 +536,21 @@ again:
                 }
 
                 //
-                // Handle the %x and %X commands.  Note that they are treated
-                // identically; that is, %X will use lower case letters for a-f
-                // instead of the upper case letters is should use.  We also
-                // alias %p to %x.
+                // Handle the %f command. Agregado por pslavkin
                 //
+                case 'f':
+                {
+                    //
+                    // Get the value from the varargs.
+                    //
+                    double f = va_arg(arg, double);
+                    uint8_t len=ustrlen(ftostr(f,s,n));
+                    iConvertCount+=len;
+                    s+=len;
+                    break;
+                }
+
+                    //
                 case 'x':
                 case 'X':
                 case 'p':

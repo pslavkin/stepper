@@ -1,17 +1,44 @@
 #ifndef __COMMANDS_H__
 #define __COMMANDS_H__
 
-extern int Cmd_help              ( struct tcp_pcb* tpcb ,int argc ,char *argv[] );
-extern int Cmd_Mac               ( struct tcp_pcb* tpcb ,int argc ,char *argv[] );
-extern int Cmd_Ip                ( struct tcp_pcb* tpcb ,int argc ,char *argv[] );
-extern int Cmd_Send2Eth          ( struct tcp_pcb* tpcb ,int argc ,char *argv[] );
-extern int Cmd_TaskList          ( struct tcp_pcb* tpcb ,int argc ,char *argv[] );
-extern int Cmd_Links_State       ( struct tcp_pcb* tpcb, int argc, char *argv[] );
-extern int Cmd_Spi_App_Cmd       ( struct tcp_pcb* tpcb, int argc, char *argv[] );
-extern int Cmd_Spi_Get_Param_Cmd ( struct tcp_pcb* tpcb, int argc, char *argv[] );
-extern void UpdateMACAddr        ( struct tcp_pcb* tpcb                         );
-extern void User_Commands_Task   ( void* nil                                    );
-extern void DisplayIPAddress     ( struct tcp_pcb* tpcb,uint32_t ui32Addr       );
 
+extern void Init_Uart(void);
+extern int Cmd_Welcome ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Login   ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Help    ( struct tcp_pcb* tpcb ,int argc ,char *argv[] );
+extern int Cmd_Exit    ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+
+
+extern int Cmd_Back2Login     ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Back2Main      ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+
+extern int Cmd_Main2Ip        ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Main2Motor     ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Main2System    ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+
+extern int Cmd_Mac            ( struct tcp_pcb* tpcb ,int argc ,char *argv[] );
+extern int Cmd_Ip             ( struct tcp_pcb* tpcb ,int argc ,char *argv[] );
+extern int Cmd_Mask           ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Gateway        ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Dhcp           ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Config_Port    ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Link_State     ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+
+extern int Cmd_TaskList  ( struct tcp_pcb* tpcb ,int argc ,char *argv[] );
+extern int Cmd_Uptime    ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Wdog_Tout ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Reboot    ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Pwd       ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Id        ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Show_Id   ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+
+
+extern int Cmd_Spi_App_Cmd        ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Spi_Get_Param_Cmd  ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Toogle_Pulses_Cmd  ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Powerstep_Init_Cmd ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+
+void User_Commands_Task       ( void* nil                                    );
+extern void DisplayIPAddress  ( struct tcp_pcb* tpcb,uint32_t ui32Addr       );
 
 #endif // __COMMANDS_H__

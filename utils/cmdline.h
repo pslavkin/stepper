@@ -110,7 +110,7 @@ tCmdLineEntry;
 //! a NULL pointer.
 //
 //*****************************************************************************
-extern tCmdLineEntry g_psCmdTable[];
+extern tCmdLineEntry* g_psCmdTable;
 
 //*****************************************************************************
 //
@@ -124,7 +124,7 @@ extern tCmdLineEntry g_psCmdTable[];
 // Prototypes for the APIs.
 //
 //*****************************************************************************
-extern void CmdLineProcess(char *pcCmdLine,struct tcp_pcb* tpcb);
+extern void CmdLineProcess(char *pcCmdLine, struct tcp_pcb* tcpb);
 
 //*****************************************************************************
 //

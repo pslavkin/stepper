@@ -3,7 +3,7 @@
 #
 
 # VERBOSE
-DEBUG=1
+#DEBUG=1
 
 PART=TM4C1294NCPDT
 
@@ -67,6 +67,7 @@ ${COMPILER}:
 #
 # Rules for building the Sample Ethernet I/O Control Application using lwIP.
 #
+${COMPILER}/out.axf: ${COMPILER}/usr_flash.o
 ${COMPILER}/out.axf: ${COMPILER}/main.o
 ${COMPILER}/out.axf: ${COMPILER}/spi_phisical.o
 ${COMPILER}/out.axf: ${COMPILER}/events.o
@@ -74,8 +75,6 @@ ${COMPILER}/out.axf: ${COMPILER}/schedule.o
 ${COMPILER}/out.axf: ${COMPILER}/leds_session.o
 ${COMPILER}/out.axf: ${COMPILER}/state_machine.o
 ${COMPILER}/out.axf: ${COMPILER}/telnet.o
-${COMPILER}/out.axf: ${COMPILER}/udp.o
-${COMPILER}/out.axf: ${COMPILER}/snmp_agent.o
 ${COMPILER}/out.axf: ${COMPILER}/clk.o
 ${COMPILER}/out.axf: ${COMPILER}/wdog.o
 ${COMPILER}/out.axf: ${COMPILER}/commands.o
@@ -84,6 +83,7 @@ ${COMPILER}/out.axf: ${COMPILER}/startup_${COMPILER}.o
 ${COMPILER}/out.axf: ${COMPILER}/cmdline.o
 ${COMPILER}/out.axf: ${COMPILER}/uartstdio.o
 ${COMPILER}/out.axf: ${COMPILER}/ustdlib.o
+${COMPILER}/out.axf: ${COMPILER}/flash_pb.o
 
 ${COMPILER}/out.axf: ${COMPILER}/timers.o
 ${COMPILER}/out.axf: ${COMPILER}/heap_2.o

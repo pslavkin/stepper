@@ -29,6 +29,8 @@
 #include <stdarg.h>
 #include "app/h/opt.h"
 
+#define DEBUG_MSG ((struct tcp_pcb*)(NULL))
+#define UART_MSG ((struct tcp_pcb*)(1))
 //*****************************************************************************
 //
 // If building with a C++ compiler, make all of the definitions in this header
@@ -60,21 +62,23 @@ extern "C"
 // Prototypes for the APIs.
 //
 //*****************************************************************************
-extern void UARTStdioConfig(uint32_t ui32Port, uint32_t ui32Baud,
-                            uint32_t ui32SrcClock);
-extern int UARTgets(char *pcBuf, uint32_t ui32Len);
-extern unsigned char UARTgetc(void);
-extern void UART_ETHprintf(struct tcp_pcb* tpcb,const char *pcString, ...);
-//extern void UARTprintf(const char *pcString, ...);
-//extern void UARTvprintf(const char *pcString, va_list vaArgP);
-extern int UARTwrite(const char *pcBuf, uint32_t ui32Len);
+extern SemaphoreHandle_t Uart_Studio_Semphr;
+
+extern void UARTStdioConfig   ( uint32_t ui32Port, uint32_t ui32Baud,
+                            uint32_t ui32SrcClock                              );
+extern int  UARTgets          ( char *pcBuf, uint32_t ui32Len                  );
+extern unsigned char UARTgetc ( void                                           );
+extern void UARTprintf(const char *pcString, ...);
+extern void UART_ETHprintf    ( struct tcp_pcb* tpcb,const char *pcString, ... );
+extern void UARTprintf(const char *pcString, ...);
+extern int  UARTwrite         ( const char *pcBuf, uint32_t ui32Len            );
 #ifdef UART_BUFFERED
-extern int UARTPeek(unsigned char ucChar);
-extern void UARTFlushTx(bool bDiscard);
-extern void UARTFlushRx(void);
-extern int UARTRxBytesAvail(void);
-extern int UARTTxBytesFree(void);
-extern void UARTEchoSet(bool bEnable);
+extern int  UARTPeek          ( unsigned char ucChar                           );
+extern void UARTFlushTx       ( bool bDiscard                                  );
+extern void UARTFlushRx       ( void                                           );
+extern int  UARTRxBytesAvail  ( void                                           );
+extern int  UARTTxBytesFree   ( void                                           );
+extern void UARTEchoSet       ( bool bEnable                                   );
 #endif
 
 //*****************************************************************************
