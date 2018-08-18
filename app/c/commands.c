@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <stdio.h>/*{{{*/
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -27,15 +27,8 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
-#include "semphr.h"
-
-
-//*****************************************************************************
-//
-// This is the table that holds the command names, implementing functions, and
-// brief description.
-//
-//*****************************************************************************
+#include "semphr.h"/*}}}*/
+//--------------------------------------------------------------------------------
 tCmdLineEntry* g_psCmdTable;
 
 tCmdLineEntry Login_Cmd_Table[] =
@@ -89,6 +82,10 @@ tCmdLineEntry Motor_Cmd_Table[] =
     { "sp"      ,Cmd_Spi_Set_Param  ,": Set param comand ej: sp 5 1234" }                                                     ,
     { "gp"      ,Cmd_Spi_Get_Param  ,": Get param comand ej: gp 5" }                                                          ,
     { "pulse"   ,Cmd_Toogle_Pulses  ,": Toogle pulses con direccino ej.pulse 100 1" }                                         ,
+    { "maxv"   ,Cmd_Set_Max_Vel ,": Maximum speed" }                                         ,
+    { "minv"   ,Cmd_Set_Min_Vel ,": Minimim speed" }                                         ,
+    { "wait"   ,Cmd_Wait ,": wait" }                                         ,
+    { "nowait"   ,Cmd_Nowait ,": no wait" }                                         ,
     { "?"       ,Cmd_Help           ,": help" }                                                                               ,
     { "<"       ,Cmd_Back2Main      ,": back" }                                                                               ,
     { 0         ,0                  ,0 }
@@ -126,9 +123,9 @@ int Cmd_Login(struct tcp_pcb* tpcb, int argc, char *argv[])
 {/*{{{*/
    if(argc>1) {
       if(ustrcmp(argv[1],Usr_Flash_Params.Pwd)==0) {
-         UART_ETHprintf(tpcb,"success\r\n");
+         UART_ETHprintf(UART_MSG,"success\r\n");
          g_psCmdTable=Main_Cmd_Table;
-         Cmd_Help(tpcb,argc,argv);
+         Cmd_Help(UART_MSG,argc,argv);
       }
       else
          UART_ETHprintf(tpcb,"invalid\r\n");
@@ -353,110 +350,137 @@ int Cmd_Spi_Get_Param(struct tcp_pcb* tpcb, int argc, char *argv[])
 }/*}}}*/
 int Cmd_Spi_Set_Param(struct tcp_pcb* tpcb, int argc, char *argv[])
 {/*{{{*/
-   UART_ETHprintf(tpcb,"Set Param\r\n");
+//   UART_ETHprintf(tpcb,"Set Param\r\n");
    if(argc>1) {
-      Send_Cmd2Spi4Int ( tpcb,Set_Param_Cmd, atoi(argv[1] )&0x1F, atoi(argv[2]));
+      Send_Cmd2Spi4Int ( tpcb,Set_Param_Cmd, atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
    }
    return 0;
 }/*}}}*/
 int Cmd_Spi_Init(struct tcp_pcb* tpcb, int argc, char *argv[])
 {/*{{{*/
-   UART_ETHprintf(tpcb,"init\r\n");
+//   UART_ETHprintf(tpcb,"init\r\n");
    Init_Powerstep(tpcb);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Run(struct tcp_pcb* tpcb, int argc, char *argv[])
 {/*{{{*/
    if(argc>1)
-      Send_Cmd2Spi4Int ( tpcb, Run_Dir_Cmd, atoi(argv[1] )&0x1F,  atoi(argv[2]));
+      Send_Cmd2Spi4Int ( tpcb, Run_Dir_Cmd, atoi(argv[1] ),  atoi(argv[2]), 3);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Step       ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
    if(argc>1)
-      Send_Cmd2Spi4Int ( tpcb, Step_Clk_Cmd, atoi(argv[1] )&0x01, 0);
+      Send_Cmd2Spi4Int ( tpcb, Step_Clk_Cmd, atoi(argv[1]), 0, 0);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Move       ( struct tcp_pcb* tpcb, int argc, char *argv[] ) 
 {/*{{{*/
    if(argc>1)
-      Send_Cmd2Spi4Int ( tpcb, Move_Cmd, atoi(argv[1] )&0x01, atoi(argv[2]));
+      Send_Cmd2Spi4Int ( tpcb, Move_Cmd, atoi(argv[1]), atoi(argv[2]), 3);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Goto       ( struct tcp_pcb* tpcb, int argc, char *argv[] ) 
 {/*{{{*/
    if(argc>1)
-      Send_Cmd2Spi4Int ( tpcb, Goto_Cmd, 0x00, atoi(argv[1]));
+      Send_Cmd2Spi4Int ( tpcb, Goto_Cmd, 0, atoi(argv[1]), 3);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Goto_Dir   ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
    if(argc>1)
-      Send_Cmd2Spi4Int ( tpcb, Goto_Dir_Cmd, atoi(argv[1] )&0x01, atoi(argv[2]));
+      Send_Cmd2Spi4Int ( tpcb, Goto_Dir_Cmd, atoi(argv[1]), atoi(argv[2]), 3);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Goto_Until ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
    if(argc>1)
-      Send_Cmd2Spi4Int ( tpcb, Go_Until_Cmd, atoi(argv[1] )&0x09, atoi(argv[2]));
+      Send_Cmd2Spi4Int ( tpcb, Go_Until_Cmd, atoi(argv[1]), atoi(argv[2]), 3);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Home       ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_Cmd2Spi4Int ( tpcb, Go_Home_Cmd, 0, 0);
+   Send_Cmd2Spi4Int ( tpcb, Go_Home_Cmd, 0, 0, 0);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Go_Mark    ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_Cmd2Spi4Int ( tpcb, Go_Mark_Cmd, 0, 0);
+   Send_Cmd2Spi4Int ( tpcb, Go_Mark_Cmd, 0, 0, 0);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Reset_Pos  ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_Cmd2Spi4Int ( tpcb, Reset_Pos_Cmd, 0, 0);
+   Send_Cmd2Spi4Int ( tpcb, Reset_Pos_Cmd, 0, 0, 0);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Reset      ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_Cmd2Spi4Int ( tpcb, Reset_Device_Cmd, 0, 0);
+   Send_Cmd2Spi4Int ( tpcb, Reset_Device_Cmd, 0, 0, 0);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Soft_Stop  ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_Cmd2Spi4Int ( tpcb, Soft_Stop_Cmd, 0, 0);
+   Send_Cmd2Spi4Int ( tpcb, Soft_Stop_Cmd, 0, 0, 0);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Hard_Stop  ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_Cmd2Spi4Int ( tpcb, Hard_Stop_Cmd, 0, 0);
+   Send_Cmd2Spi4Int ( tpcb, Hard_Stop_Cmd, 0, 0, 0);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Soft_Hiz   ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_Cmd2Spi4Int ( tpcb, Soft_Hi_Z_Cmd, 0, 0);
+   Send_Cmd2Spi4Int ( tpcb, Soft_Hi_Z_Cmd, 0, 0, 0);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Hard_Hiz   ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_Cmd2Spi4Int ( tpcb, Hard_Hi_Z_Cmd, 0, 0);
+   Send_Cmd2Spi4Int ( tpcb, Hard_Hi_Z_Cmd, 0, 0, 0);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Status     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_Cmd2Spi4Int ( tpcb, Get_Status_Cmd, 0, 0);
+   Send_Cmd2Spi4Int ( tpcb, Get_Status_Cmd, 0, 0, 3);
    return 0;
 }/*}}}*/
 int Cmd_Toogle_Pulses(struct tcp_pcb* tpcb, int argc, char *argv[])
 {/*{{{*/
    if(argc>1) {
       uint32_t Pulses = atoi(argv[1]);
-      UART_ETHprintf(tpcb,"begin pulses:%d\r\n",Pulses);
+      UART_ETHprintf(DEBUG_MSG,"begin pulses:%d\r\n",Pulses);
       Toogle_Pulses(Pulses);
-      UART_ETHprintf(tpcb,"end pulses\r\n");
+      UART_ETHprintf(DEBUG_MSG,"end pulses\r\n");
    }
    return 0;
 }/*}}}*/
-
+int Cmd_Set_Max_Vel     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
+{/*{{{*/
+   if(argc>1) {
+      float V=(atol(argv[1]))*(((float)25*262144)/100000000);
+      UART_ETHprintf(DEBUG_MSG,"step/seg= %f\r\n",V);
+      Send_Cmd2Spi4Int ( tpcb, Set_Param_Cmd, Max_Speed_Reg, (uint32_t)V, 2);
+   }
+   return 0;
+}/*}}}*/
+int Cmd_Set_Min_Vel     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
+{/*{{{*/
+   if(argc>1) {
+      float V=(atol(argv[1]))*(((float)25*262144)/100000000);
+      UART_ETHprintf(DEBUG_MSG,"step/seg= %f\r\n",V);
+      Send_Cmd2Spi4Int ( tpcb, Set_Param_Cmd, Min_Speed_Reg, (uint32_t)V, 2);
+   }
+   return 0;
+}/*}}}*/
+int Cmd_Wait     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
+{/*{{{*/
+   Set_Wait_Busy();
+   return 0;
+}/*}}}*/
+int Cmd_Nowait     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
+{/*{{{*/
+   Unset_Wait_Busy();
+   return 0;
+}/*}}}*/
 
 
 //-----------------CMD PROCESS---------------------------------------------------------------

@@ -39,11 +39,12 @@ int main(void)
    Init_Uart   ( );
    Init_Events ( );
    Init_Schedule();
-   xTaskCreate ( State_Machine      ,"sm"            ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1, NULL );
+   xTaskCreate ( State_Machine      ,"sm"            ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
    xTaskCreate ( Schedule           ,"schedule"      ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
    xTaskCreate ( Led_Link_Task      ,"led link"      ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
    xTaskCreate ( Led_Eth_Data_Task  ,"led eth data"  ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
    xTaskCreate ( User_Commands_Task ,"user commands" ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
+   xTaskCreate ( Gcode_Parser       ,"gcode"         ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
    Init_Telnet         ( );
    Init_Spi_Phisical   ( );
    vTaskStartScheduler ( );

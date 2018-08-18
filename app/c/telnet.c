@@ -7,6 +7,7 @@
 #include "usr_flash.h"
 #include "commands.h"
 #include "utils/uartstdio.h"
+#include "utils/ringbuf.h"
 
 struct tcp_pcb* soc;
 
@@ -21,30 +22,55 @@ void Init_Telnet(void)         //inicializa los puertos que se usan en esta maqu
 //en linux no es necesario porque la arma bash, pero en win o con linux pero en modo raw
 //es necesario almacenar localmente.. no encontre otra manera de usar  los pbufs encadenados
 //sin luberar el windows como para no gastar RAM. estuve cerca pero no me anduvo
+
+struct Gcode_Queue_Struct
+{
+   uint8_t Buff[APP_INPUT_BUF_SIZE];
+   struct tcp_pcb* tpcb;
+};
+QueueHandle_t Gcode_Queue;
+
+void Gcode_Parser(void* nil)
+{
+   Gcode_Queue= xQueueCreate(20,sizeof(struct Gcode_Queue_Struct));
+   struct Gcode_Queue_Struct D;
+   while(1) {
+      while(xQueueReceive(Gcode_Queue,&D,portMAX_DELAY)!=pdTRUE)
+            ;
+      UART_ETHprintf(D.tpcb,"%s ",D.Buff);
+      CmdLineProcess((char*)D.Buff,D.tpcb);
+      UART_ETHprintf(D.tpcb,"listo\r\n",D.Buff);
+   }
+}
+
+
+
+
+
 struct Args_Struct
 {
-   char Buff[APP_INPUT_BUF_SIZE];
-   uint16_t I;
+   tRingBufObject RB;
+   uint8_t Buff[APP_INPUT_BUF_SIZE];
 };
 
-//magia, como me llega el tpcb segun quien corresponda, estare responidendo a ese
-//socket y no a otro, con lo cual tengo resuelte los estaodos de cada uno asi si mas
 err_t Rcv_Fn (void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
 {
    struct Args_Struct* B=arg;
    if(p!=NULL)  {
-      int len=p->len<(sizeof(B->Buff)-B->I)?p->len:(sizeof(B->Buff)-B->I);    //ojo de no escribir mas alla de los limites
-      pbuf_copy_partial(p, B->Buff+B->I,len,0);
-      B->I+=len;
-      tcp_recved(tpcb,p->len);
-      if( B->Buff[B->I-1] =='\n' || B->Buff[B->I-1] == '\r' || B->I==sizeof(B->Buff))  //si llego enter O se lleno el buffer
-      {
-         B->Buff[B->I-1] ='\0';
-         if( B->Buff[B->I-2] =='\n' || B->Buff[B->I-2] == '\r')
-            B->Buff[B->I-2] ='\0';
-         B->I=0;
-         CmdLineProcess(B->Buff,tpcb);
+      RingBufWrite(&B->RB, p->payload, p->len);
+      while(!RingBufEmpty(&B->RB)) {
+         int32_t Len=RingBufPeek(&B->RB,NULL);
+         if(Len>=0) {
+            struct Gcode_Queue_Struct D;
+            RingBufRead(&B->RB,D.Buff,Len+1);
+            D.Buff[Len]='\0';
+            D.tpcb=tpcb;
+            xQueueSend(Gcode_Queue,&D,portMAX_DELAY);
+         }
+         else
+            break;
       }
+      tcp_recved(tpcb,p->len);
       pbuf_free(p);                    //libero bufer
       return ERR_OK;
    }
@@ -65,12 +91,12 @@ void Telnet_Close ( struct tcp_pcb *tpcb)
 
 err_t accept_fn (void *arg, struct tcp_pcb *newpcb, err_t err)
 {
-   void* p =pvPortMalloc(sizeof(struct Args_Struct));
-   ((struct Args_Struct*)p)->I=0;
+   struct Args_Struct* R=(struct Args_Struct*)pvPortMalloc(sizeof(struct Args_Struct));
+   RingBufInit( &R->RB,R->Buff,APP_INPUT_BUF_SIZE);
    tcp_recv    ( newpcb ,Rcv_Fn  );
-   tcp_arg     ( newpcb ,p       );
-   Cmd_Welcome ( newpcb ,0 ,NULL );
-   Cmd_Help    ( newpcb ,0 ,NULL );
+   tcp_arg     ( newpcb ,R       );
+//   Cmd_Welcome ( newpcb ,0 ,NULL );
+//   Cmd_Help    ( newpcb ,0 ,NULL );
    return 0;
 }
 

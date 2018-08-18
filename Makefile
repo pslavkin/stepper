@@ -84,6 +84,7 @@ ${COMPILER}/out.axf: ${COMPILER}/cmdline.o
 ${COMPILER}/out.axf: ${COMPILER}/uartstdio.o
 ${COMPILER}/out.axf: ${COMPILER}/ustdlib.o
 ${COMPILER}/out.axf: ${COMPILER}/flash_pb.o
+${COMPILER}/out.axf: ${COMPILER}/ringbuf.o
 
 ${COMPILER}/out.axf: ${COMPILER}/timers.o
 ${COMPILER}/out.axf: ${COMPILER}/heap_2.o

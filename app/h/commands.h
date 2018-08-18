@@ -49,6 +49,11 @@ extern int Cmd_Spi_Soft_Hiz   ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Spi_Hard_Hiz   ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Spi_Status     ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 
+extern int Cmd_Set_Max_Vel ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Set_Min_Vel ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Wait        ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Nowait      ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+
 extern int Cmd_Spi_Set_Param ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Spi_Get_Param ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Toogle_Pulses ( struct tcp_pcb* tpcb, int argc, char *argv[] );

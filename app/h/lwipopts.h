@@ -65,7 +65,7 @@
 //*****************************************************************************
 //#define MEM_LIBC_MALLOC                 0
 #define MEM_ALIGNMENT                   4          // default is 1
-#define MEM_SIZE                        (64*1024)  // con 2k no anda con 16, anda 2 horas
+#define MEM_SIZE                        (16*1024)  // con 2k no anda con 16, anda 2 horas
 #define MEMP_OVERFLOW_CHECK             0
 #define MEMP_SANITY_CHECK               0
 //#define MEM_USE_POOLS                   0
@@ -213,8 +213,8 @@
 #define LWIP_TCP                        1
 //#define TCP_TTL                         (IP_DEFAULT_TTL)
 #define TCP_MSS                         536            // default is 536
-#define TCP_WND                         (2*TCP_MSS+16) // default is 2048
-#define TCP_SND_BUF                     (2 * TCP_MSS+16)
+#define TCP_WND                         (TCP_MSS) // default is 2048
+#define TCP_SND_BUF                     (2 * TCP_MSS)
 //#define TCP_MAXRTX                      12
 //#define TCP_SYNMAXRTX                   6
 //#define TCP_QUEUE_OOSEQ                 1

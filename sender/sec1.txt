@@ -1,0 +1,59 @@
+<
+<
+login 1234
+motor
+init
+sp 22 0 2
+maxv 1000
+wait
+home
+maxv 1000
+wait
+goto 100
+wait
+goto  0
+wait
+goto 100
+wait
+goto  0
+maxv 10000
+wait
+goto 10000
+wait
+goto  0
+wait
+goto 10
+wait
+goto  0
+wait
+goto 10
+wait
+goto  0
+wait
+goto 10
+wait
+goto  0
+wait
+goto 10
+wait
+goto  0
+wait
+goto 10
+wait
+goto  0
+wait
+goto 10
+wait
+goto  0
+wait
+goto 10
+wait
+goto  0
+wait
+goto 10
+wait
+goto  0
+<
+<
+exit
+
