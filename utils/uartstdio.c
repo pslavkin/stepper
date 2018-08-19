@@ -524,10 +524,10 @@ UARTwrite(const char *pcBuf, uint32_t ui32Len)
         // If the character to the UART is \n, then add a \r before it so that
         // \n is translated to \n\r in the output.
         //
-        if(pcBuf[uIdx] == '\n')
-        {
-            MAP_UARTCharPut(g_ui32Base, '\r');
-        }
+//        if(pcBuf[uIdx] == '\n')
+//        {
+//            MAP_UARTCharPut(g_ui32Base, '\r');
+//        }
 
         //
         // Send the character to the UART output.
@@ -1140,161 +1140,69 @@ void UARTStdioIntHandler(void)
     uint32_t ui32Ints;
     int8_t cChar;
     int32_t i32Char;
-    static bool bLastWasCR = false;
 
-    //
     // Get and clear the current interrupt source(s)
-    //
     ui32Ints = MAP_UARTIntStatus(g_ui32Base, true);
     MAP_UARTIntClear(g_ui32Base, ui32Ints);
 
-    //
     // Are we being interrupted because the TX FIFO has space available?
-    //
     if(ui32Ints & UART_INT_TX)
     {
-        //
         // Move as many bytes as we can into the transmit FIFO.
-        //
         UARTPrimeTransmit(g_ui32Base);
-
-        //
         // If the output buffer is empty, turn off the transmit interrupt.
-        //
         if(TX_BUFFER_EMPTY)
-        {
             MAP_UARTIntDisable(g_ui32Base, UART_INT_TX);
-        }
     }
 
-    //
     // Are we being interrupted due to a received character?
-    //
     if(ui32Ints & (UART_INT_RX | UART_INT_RT))
     {
-        //
         // Get all the available characters from the UART.
-        //
         while(MAP_UARTCharsAvail(g_ui32Base))
         {
-            //
             // Read a character
-            //
             i32Char = MAP_UARTCharGetNonBlocking(g_ui32Base);
-            cChar = (unsigned char)(i32Char & 0xFF);
+            cChar   = (unsigned char)(i32Char & 0xFF);
 
-            //
             // If echo is ENABLED, we skip the various text filtering
-            // operations that would typically be required when supporting a
-            // command line.
-            //
             if(!g_bDisableEcho)
             {
-                //
-                // Handle backspace by erasing the last character in the
-                // buffer.
-                //
+                // Handle backspace by erasing the last character 
                 if(cChar == '\b' || cChar == 127) //el 127 me lo manda picocom
                 {
-                    //
-                    // If there are any characters already in the buffer, then
-                    // delete the last.
-                    //
+                    // If there are any characters already in the buffer
                     if(!RX_BUFFER_EMPTY)
                     {
-                        //
-                        // Rub out the previous character on the users
-                        // terminal.
-                        //
+                        // Rub out the previous character on the terminal
                         UARTwrite("\b \b", 3);
-
-                        //
                         // Decrement the number of characters in the buffer.
-                        //
                         if(g_ui32UARTRxWriteIndex == 0)
-                        {
                             g_ui32UARTRxWriteIndex = UART_RX_BUFFER_SIZE - 1;
-                        }
                         else
-                        {
                             g_ui32UARTRxWriteIndex--;
-                        }
                     }
-
-                    //
                     // Skip ahead to read the next character.
-                    //
                     continue;
                 }
-
-                //
-                // If this character is LF and last was CR, then just gobble up
-                // the character since we already echoed the previous CR and we
-                // don't want to store 2 characters in the buffer if we don't
-                // need to.
-                //
-                if((cChar == '\n') && bLastWasCR)
-                {
-                    bLastWasCR = false;
-                    UARTwrite("\n", 1);
-                    continue;
-                }
-
-                //
                 // See if a newline or escape character was received.
-                //
                 if((cChar == '\r') || (cChar == '\n') || (cChar == 0x1b))
-                {
-                    //
-                    // If the character is a CR, then it may be followed by an
-                    // LF which should be paired with the CR.  So remember that
-                    // a CR was received.
-                    //
-                    if(cChar == '\r')
-                    {
-                        bLastWasCR = true;
-                    }
-
-                    //
-                    // Regardless of the line termination character received,
-                    // put a CR in the receive buffer as a marker telling
-                    // UARTgets() where the line ends.  We also send an
-                    // additional LF to ensure that the local terminal echo
-                    // receives both CR and LF.
-                    //
-                    cChar = '\r';
-             //       UARTwrite("\n", 1);
-                }
+                    // put a CR in the receive buffer as a marker 
+                    cChar = '\n';
             }
-
-            //
-            // If there is space in the receive buffer, put the character
-            // there, otherwise throw it away.
-            //
+            // If there is space in the receive buffer,
             if(!RX_BUFFER_FULL)
             {
-                //
                 // Store the new character in the receive buffer
-                //
                 g_pcUARTRxBuffer[g_ui32UARTRxWriteIndex] = cChar;
                 ADVANCE_RX_BUFFER_INDEX(g_ui32UARTRxWriteIndex);
-
-                if(cChar == '\r')
-                {
-                   xSemaphoreGiveFromISR(Uart_Studio_Semphr,NULL);
-                }
-                //
                 // If echo is enabled, write the character to the transmit
-                // buffer so that the user gets some immediate feedback.
-                //
                 if(!g_bDisableEcho)
-                {
                     UARTwrite((const char *)&cChar, 1);
-                }
+                if(cChar == '\n')
+                   xSemaphoreGiveFromISR(Uart_Studio_Semphr,NULL);
             }
         }
-
-        //
         // If we wrote anything to the transmit buffer, make sure it actually
         // gets transmitted.
         //

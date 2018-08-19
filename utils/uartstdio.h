@@ -27,6 +27,7 @@
 
 #include "utils/lwiplib.h"
 #include <stdarg.h>
+#include <stdbool.h>
 #include "app/h/opt.h"
 
 #define DEBUG_MSG ((struct tcp_pcb*)(NULL))

@@ -35,12 +35,12 @@ bool Wait_Busy=false;
 void  Set_Wait_Busy     (void)
 {
       Wait_Busy=true;
-      UART_ETHprintf(UART_MSG,"wait true\r\n");
+      UART_ETHprintf(DEBUG_MSG,"wait true\r\n");
 }
 void  Unset_Wait_Busy   (void)
 {
       Wait_Busy=false;
-      UART_ETHprintf(UART_MSG,"wait false\r\n");
+      UART_ETHprintf(DEBUG_MSG,"wait false\r\n");
 }
 
 
@@ -85,11 +85,12 @@ void Send_Cmd2Spi(struct tcp_pcb* tpcb,uint8_t* Params,uint8_t Len)
 {
    uint32_t Ans;
    uint8_t i;
+   UART_ETHprintf(DEBUG_MSG,"\r\n");
    for(i=0;i<Len;i++) {
       Cs_Lo();
          MAP_SSIDataPut(SSI2_BASE,Params[i]);
          MAP_SSIDataGet(SSI2_BASE,&Ans);
-         UART_ETHprintf(UART_MSG,"Command=0x%02x - Ans=0x%02x\r\n",Params[i],(uint8_t) Ans);
+         UART_ETHprintf(DEBUG_MSG,"Command=0x%02x - Ans=0x%02x\r\n",Params[i],(uint8_t) Ans);
          Params[i]=(uint8_t)Ans;
          if(Wait_Busy==true && i==(Len-1)) {
             while(Busy_Read()==0)
@@ -99,33 +100,71 @@ void Send_Cmd2Spi(struct tcp_pcb* tpcb,uint8_t* Params,uint8_t Len)
       Cs_Hi();
    }
 }
-void Send_Cmd2Spi4Int(struct tcp_pcb* tpcb,uint8_t Cmd, uint8_t P, uint32_t N, uint8_t Len)
+uint8_t Get_Reg1(uint8_t Reg)
 {
-   uint8_t Data[4]={P|Cmd,0};
-   switch (Len) {
-      case 1:
-         Data[1]=(N & 0x0000FF)>> 0;
-         break;
-      case 2:
-         Data[1]=(N & 0x00FF00)>> 8;
-         Data[2]=(N & 0x0000FF)>> 0;
-         break;
-      case 3:
-         Data[1]=(N & 0xFF0000)>>16;
-         Data[2]=(N & 0x00FF00)>> 8;
-         Data[3]=(N & 0x0000FF)>> 0;
-         break;
-      default:
-         break;
-   }
-   Send_Cmd2Spi (tpcb,Data,Len+1);
+   uint8_t Params[2]={Reg|Get_Param_Cmd,0};
+   Send_Cmd2Spi(DEBUG_MSG,Params,2);
+   return Params[1];
+}
+uint16_t Get_Reg2(uint8_t Reg)
+{
+   uint8_t Params[3]={Reg|Get_Param_Cmd,0};
+   Send_Cmd2Spi(DEBUG_MSG,Params,3);
+   return (Params[1]<<8) + (Params[2]);
+}
+uint32_t Get_Reg3(uint8_t Reg)
+{
+   uint8_t Params[4]={Reg|Get_Param_Cmd,0};
+   Send_Cmd2Spi(DEBUG_MSG,Params,4);
+   return (Params[1]<<16) + (Params[2]<<8) + (Params[3]);
+}
+void Set_Reg1(uint8_t Reg, uint8_t V)
+{
+   uint8_t Params[2]={Set_Param_Cmd|Reg,V};
+   Send_Cmd2Spi(DEBUG_MSG,Params,2);
+}
+void Set_Reg2(uint8_t Reg, uint16_t V)
+{
+   uint8_t Params[3]={Set_Param_Cmd|Reg,V>>8,V};
+   Send_Cmd2Spi(DEBUG_MSG,Params,3);
+}
+void Set_Reg3(uint8_t Reg, uint16_t V)
+{
+   uint8_t Params[4]={Set_Param_Cmd|Reg,V>>16,V>>8,V};
+   Send_Cmd2Spi(DEBUG_MSG,Params,4);
+}
+uint32_t Get_App3(uint8_t Cmd)
+{
+   uint8_t Params[4]={Cmd,0};
+   Send_Cmd2Spi (DEBUG_MSG,Params,4);
+   return (Params[1]<<16) + (Params[2]<<8) + (Params[3]);
+}
+void Send_App0(uint8_t Cmd, uint8_t Option)
+{
+   uint8_t Params[1]={Cmd|Option};
+   Send_Cmd2Spi (DEBUG_MSG,Params,1);
+}
+void Send_App1(uint8_t Cmd, uint8_t Option, uint8_t V)
+{
+   uint8_t Params[2]={Cmd|Option,V};
+   Send_Cmd2Spi (DEBUG_MSG,Params,2);
+}
+void Send_App2(uint8_t Cmd, uint8_t Option, uint16_t V)
+{
+   uint8_t Params[3]={Cmd|Option,V>>8,V};
+   Send_Cmd2Spi (DEBUG_MSG,Params,3);
+}
+void Send_App3(uint8_t Cmd, uint8_t Option, uint32_t V)
+{
+   uint8_t Params[4]={Cmd|Option,V>>16,V>>8,V};
+   Send_Cmd2Spi (DEBUG_MSG,Params,4);
 }
 void Init_Powerstep(struct tcp_pcb* tpcb)
 {
    uint8_t p[]= { 9  ,150 ,10 ,150 ,11 ,150 ,12 ,150 , // compensacion de vss
                   26 ,44  ,8  ,                        // que no se apague el puente si salta overcurrente
-                  5  ,0   ,10 ,6   ,0  ,10,           // aceleracion y descaeleracion
-                  0x16  ,0x80};                       // full step
+                  5  ,0   ,10 ,6   ,0  ,10};           // aceleracion y descaeleracion
+//                  0x16  ,0x80};                       // full step
    Send_Cmd2Spi(tpcb,p,sizeof p);
 }
 void Toogle_Pulses(uint32_t Pulses)
@@ -144,11 +183,11 @@ void Busy_Read_Task(void* nil)
    while(1) {
       while(Busy_Read()==1)
          vTaskDelay ( pdMS_TO_TICKS(10 ));
-      UART_ETHprintf(UART_MSG,"busy\n");
+      UART_ETHprintf(DEBUG_MSG,"busy\n");
       while(Busy_Read()==0)
          vTaskDelay ( pdMS_TO_TICKS(10 ));
       xSemaphoreGive(Busy_Sem);
-      UART_ETHprintf(UART_MSG,"ready\n");
+      UART_ETHprintf(DEBUG_MSG,"ready\n");
    }
 }
 //----------------------------------------------------------------------------------------------------

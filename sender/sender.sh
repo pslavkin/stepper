@@ -1,7 +1,7 @@
 #!/bin/bash
 while IFS='' read -r line || [[ -n "$line" ]]; do
     echo $line;
-    if read -r ack <out; then
-      echo $ack >&2;
+    if read ack < fb_fifo; then
+      echo "$ack" > ack_fifo;
     fi;
-done < "$1"
+done 

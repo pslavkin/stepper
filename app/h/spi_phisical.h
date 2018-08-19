@@ -23,8 +23,11 @@ enum Step01_App_Cmd {
    Get_Status_Cmd   = 0xD0    //0b_1101_0000,
 };
 enum Step01_Registers{
-   Max_Speed_Reg  = 0x07,
-   Min_Speed_Reg  = 0x08
+   Speed_Reg     = 0x04,
+   Acc_Reg       = 0x05,
+   Dec_Reg       = 0x06,
+   Max_Speed_Reg = 0x07,
+   Min_Speed_Reg = 0x08
 };
 //------------------------------------------------------
 extern void    Init_Spi_Phisical ( void );
@@ -36,11 +39,21 @@ extern bool    Busy_Read         ( void );
 // ------------------------------------------------------
 extern void    Send_Data2Spi     ( void                        );
 // ------------------------------------------------------
-extern void    Send_Cmd2Spi     ( struct tcp_pcb* tpcb,uint8_t* Params,uint8_t Len                     );
-extern void    Send_Cmd2Spi4Int ( struct tcp_pcb* tpcb,uint8_t Cmd, uint8_t P, uint32_t N, uint8_t Len );
-extern void    Toogle_Pulses    ( uint32_t Pulses                                                      );
-extern void    Init_Powerstep   ( struct tcp_pcb* tpcb                                                 );
-extern void    Busy_Read_Task   ( void* nil                                                            );
+extern void       Send_Cmd2Spi   ( struct tcp_pcb* tpcb,uint8_t* Params,uint8_t Len );
+extern uint8_t    Get_Reg1       ( uint8_t Reg                                      );
+extern uint16_t   Get_Reg2       ( uint8_t Reg                                      );
+extern uint32_t   Get_Reg3       ( uint8_t Reg                                      );
+extern void       Set_Reg1       ( uint8_t Reg, uint8_t V                           );
+extern void       Set_Reg2       ( uint8_t Reg, uint16_t V                          );
+extern void       Set_Reg3       ( uint8_t Reg, uint16_t V                          );
+extern uint32_t   Get_App3       ( uint8_t Cmd                                      );
+extern void       Send_App0      ( uint8_t Cmd, uint8_t Option                      );
+extern void       Send_App1      ( uint8_t Cmd, uint8_t Option, uint8_t V           );
+extern void       Send_App2      ( uint8_t Cmd, uint8_t Option, uint16_t V          );
+extern void       Send_App3      ( uint8_t Cmd, uint8_t Option, uint32_t V          );
+extern void       Toogle_Pulses  ( uint32_t Pulses                                  );
+extern void       Init_Powerstep ( struct tcp_pcb* tpcb                             );
+extern void       Busy_Read_Task ( void* nil                                        );
 //------------------------------------------------------
 extern void  Set_Wait_Busy     (void);
 extern void  Unset_Wait_Busy   (void);

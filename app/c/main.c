@@ -22,6 +22,7 @@
 #include "telnet.h"
 #include "spi_phisical.h"
 #include "usr_flash.h"
+#include "gcode.h"
 
 
 int main(void)

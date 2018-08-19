@@ -74,6 +74,7 @@ ${COMPILER}/out.axf: ${COMPILER}/events.o
 ${COMPILER}/out.axf: ${COMPILER}/schedule.o
 ${COMPILER}/out.axf: ${COMPILER}/leds_session.o
 ${COMPILER}/out.axf: ${COMPILER}/state_machine.o
+${COMPILER}/out.axf: ${COMPILER}/gcode.o
 ${COMPILER}/out.axf: ${COMPILER}/telnet.o
 ${COMPILER}/out.axf: ${COMPILER}/clk.o
 ${COMPILER}/out.axf: ${COMPILER}/wdog.o

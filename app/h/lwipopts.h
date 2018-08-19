@@ -67,7 +67,7 @@
 #define MEM_ALIGNMENT                   4          // default is 1
 #define MEM_SIZE                        (16*1024)  // con 2k no anda con 16, anda 2 horas
 #define MEMP_OVERFLOW_CHECK             0
-#define MEMP_SANITY_CHECK               0
+#define MEMP_SANITY_CHECK               1
 //#define MEM_USE_POOLS                   0
 //#define MEMP_USE_CUSTOM_POOLS           0
 
@@ -214,13 +214,13 @@
 //#define TCP_TTL                         (IP_DEFAULT_TTL)
 #define TCP_MSS                         536            // default is 536
 #define TCP_WND                         (TCP_MSS) // default is 2048
-#define TCP_SND_BUF                     (2 * TCP_MSS)
+#define TCP_SND_BUF                     (4*TCP_MSS)
 //#define TCP_MAXRTX                      12
 //#define TCP_SYNMAXRTX                   6
 //#define TCP_QUEUE_OOSEQ                 1
 //#define TCP_CALCULATE_EFF_SEND_MSS      1
                                                     // default is 256
-//#define TCP_SND_QUEUELEN                (4 * (TCP_SND_BUF/TCP_MSS))
+#define TCP_SND_QUEUELEN                (4 * (TCP_SND_BUF/TCP_MSS))
 //#define TCP_SNDLOWAT                    (TCP_SND_BUF/2)
 #define TCP_LISTEN_BACKLOG              0
 #define TCP_DEFAULT_LISTEN_BACKLOG      3

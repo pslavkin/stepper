@@ -134,7 +134,7 @@ void CmdLineProcess(char *pcCmdLine,struct tcp_pcb* tpcb)
                 //
                 else
                 {
-                     UART_ETHprintf(tpcb,"too many arguments for command processor\r\n");
+                     UART_ETHprintf(DEBUG_MSG,"too many arguments for command processor\r\n");
                      goto prompt;
                 }
             }
@@ -179,7 +179,7 @@ void CmdLineProcess(char *pcCmdLine,struct tcp_pcb* tpcb)
             //
             psCmdEntry++;
         }
-       UART_ETHprintf(tpcb,"bad command\r\n");
+       UART_ETHprintf(DEBUG_MSG,"bad command\r\n");
 
     }
     //
@@ -187,7 +187,9 @@ void CmdLineProcess(char *pcCmdLine,struct tcp_pcb* tpcb)
     // an error.
     //
 prompt:
-    UART_ETHprintf(tpcb,"> ");
+    return;
+
+//     UART_ETHprintf(tpcb,">-");
 }
 
 //*****************************************************************************
