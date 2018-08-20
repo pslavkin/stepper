@@ -1198,7 +1198,7 @@ void UARTStdioIntHandler(void)
                 ADVANCE_RX_BUFFER_INDEX(g_ui32UARTRxWriteIndex);
                 // If echo is enabled, write the character to the transmit
                 if(!g_bDisableEcho)
-                    UARTwrite((const char *)&cChar, 1);
+    //                UARTwrite((const char *)&cChar, 1);
                 if(cChar == '\n')
                    xSemaphoreGiveFromISR(Uart_Studio_Semphr,NULL);
             }

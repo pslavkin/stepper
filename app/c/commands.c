@@ -555,6 +555,7 @@ void Init_Uart(void)
    ROM_GPIOPinConfigure(GPIO_PA0_U0RX);
    ROM_GPIOPinConfigure(GPIO_PA1_U0TX);
    ROM_GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+//   UARTEchoSet(false);
 
    UARTStdioConfig ( 0, 115200, configCPU_CLOCK_HZ);
    g_psCmdTable=Motor_Cmd_Table;
