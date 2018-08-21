@@ -25,6 +25,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdarg.h>
+#include <stdlib.h>
 #include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
@@ -39,6 +40,7 @@
 #include "utils/uartstdio.h"
 #include "utils/ustdlib.h"
 #include "opt.h"
+#include "esp8266.h"
 
 #include "string.h"
 #include "stdio.h"
@@ -144,9 +146,16 @@ static const char * const g_pcHex = "0123456789abcdef";
 // The list of possible base addresses for the console UART.
 //
 //*****************************************************************************
-static const uint32_t g_ui32UARTBase[3] =
+static const uint32_t g_ui32UARTBase[] =
 {
-    UART0_BASE, UART1_BASE, UART2_BASE
+    UART0_BASE,
+    UART1_BASE,
+    UART2_BASE,
+    UART3_BASE,
+    UART4_BASE,
+    UART5_BASE,
+    UART6_BASE,
+    UART7_BASE
 };
 
 #ifdef UART_BUFFERED
@@ -155,9 +164,16 @@ static const uint32_t g_ui32UARTBase[3] =
 // The list of possible interrupts for the console UART.
 //
 //*****************************************************************************
-static const uint32_t g_ui32UARTInt[3] =
+static const uint32_t g_ui32UARTInt[] =
 {
-    INT_UART0, INT_UART1, INT_UART2
+    INT_UART0,
+    INT_UART1,
+    INT_UART2,
+    INT_UART3,
+    INT_UART4,
+    INT_UART5,
+    INT_UART6,
+    INT_UART7
 };
 
 //*****************************************************************************
@@ -173,9 +189,16 @@ static uint32_t g_ui32PortNum;
 // The list of UART peripherals.
 //
 //*****************************************************************************
-static const uint32_t g_ui32UARTPeriph[3] =
+static const uint32_t g_ui32UARTPeriph[] =
 {
-    SYSCTL_PERIPH_UART0, SYSCTL_PERIPH_UART1, SYSCTL_PERIPH_UART2
+    SYSCTL_PERIPH_UART0,
+    SYSCTL_PERIPH_UART1,
+    SYSCTL_PERIPH_UART2,
+    SYSCTL_PERIPH_UART3,
+    SYSCTL_PERIPH_UART4,
+    SYSCTL_PERIPH_UART5,
+    SYSCTL_PERIPH_UART6,
+    SYSCTL_PERIPH_UART7
 };
 
 //*****************************************************************************
@@ -349,6 +372,7 @@ void UARTStdioConfig(uint32_t ui32PortNum, uint32_t ui32Baud, uint32_t ui32SrcCl
     // In buffered mode, we only allow a single instance to be opened.
     //
     Uart_Studio_Semphr = xSemaphoreCreateCounting ( 10, 0 );
+    Print_Mutex = xSemaphoreCreateMutex();
     ASSERT(g_ui32Base == 0);
 #endif
 
@@ -862,24 +886,95 @@ UARTgetc(void)
 //! \return None.
 //
 //*****************************************************************************
+/**********************************************************************************************
+ * File Name     :
+ * Function Name : void strrev(char *str)
+ * Parameters   : *str : array in which converted value is stored
+ * Return       : None
+ * Description  : reverses the string
+ **********************************************************************************************/
+void strrev (char *str)
+{
+	unsigned char temp, len=0, i=0;
+
+	if( str == '\0' || !(*str) )    // If str is NULL or empty, do nothing
+	return;
+
+	while(str[len] != '\0')
+	{
+		len++;
+	}
+	len=len-1;
+
+	// Swap the characters
+	while(i < len)
+	{
+		temp = str[i];
+		str[i] = str[len];
+		str[len] = temp;
+		i++;
+		len--;
+	}
+}
+void itoaa(unsigned long num, char *arr, unsigned char base)
+{
+	unsigned char i=0,rem=0;
+
+    // Handle 0 explicitly, otherwise empty string is printed for 0
+    if (num == 0)
+    {
+        arr[i++] = '0';
+        arr[i] = '\0';
+    }
+
+    // Process individual digits
+    while (num != 0)
+    {
+        rem = num % base;
+        arr[i++] = (rem > 9)? (rem-10) + 'A' : rem + '0';
+        num = num/base;
+    }
+    arr[i] = '\0'; 	// Append string terminator
+    strrev(arr);        // Reverses the string
+}
+//
+//
+
 static char Buff[UART_TX_BUFFER_SIZE];
-void
+static char Header[20]="AT+CIPSEND=0,10\r\n";
+
+   
+   void
 UART_ETHprintf(struct tcp_pcb* tpcb,const char *pcString, ...)
 {
 #ifndef DEBUG_UART
    if(tpcb==DEBUG_MSG) return;
 #endif
 {
+   xSemaphoreTake(Print_Mutex,portMAX_DELAY);
    va_list vaArgP;
    int len;
      va_start(vaArgP, pcString);
      len=uvsnprintf(Buff,UART_TX_BUFFER_SIZE,pcString, vaArgP);
-     if(tpcb==UART_MSG || tpcb==DEBUG_MSG)
+     if(tpcb==UART_MSG || tpcb==DEBUG_MSG )
         UARTwrite(Buff,len<UART_TX_BUFFER_SIZE?len:UART_TX_BUFFER_SIZE);
-     else
-        tcp_write(tpcb,Buff,len<UART_TX_BUFFER_SIZE?len:UART_TX_BUFFER_SIZE,
-                   TCP_WRITE_FLAG_COPY);//|TCP_WRITE_FLAG_MORE);
+     else 
+        if(tpcb==ESP_UART_MSG)  {
+            int i;
+            itoaa(len,Header+13,10);
+            for(i=0;Header[i]!='\0';i++)
+                 Esp_UARTwrite(Header+i,1);
+            Esp_UARTwrite("\r\n",2);
+            vTaskDelay(2);
+            Esp_UARTwrite(Buff,len<UART_TX_BUFFER_SIZE?len:UART_TX_BUFFER_SIZE);
+           vTaskDelay(2);
+        }
+        else
+           tcp_write(tpcb,Buff,len<UART_TX_BUFFER_SIZE?len:UART_TX_BUFFER_SIZE,
+                      TCP_WRITE_FLAG_COPY);//|TCP_WRITE_FLAG_MORE);
     va_end(vaArgP);
+
+   xSemaphoreGive(Print_Mutex);
 }
 }
 void UARTprintf(const char *pcString, ...)
@@ -1134,6 +1229,7 @@ UARTEchoSet(bool bEnable)
 #if defined(UART_BUFFERED) || defined(DOXYGEN)
 
 SemaphoreHandle_t Uart_Studio_Semphr;
+SemaphoreHandle_t Print_Mutex;
 
 void UARTStdioIntHandler(void)
 {

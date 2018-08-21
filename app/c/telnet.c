@@ -29,7 +29,7 @@ void Print_Slide(struct Gcode_Queue_Struct *D)
       for(;i<(sizeof(Slide)-1);i++)
          Slide[i]='.';
       Slide[i]='\0';
-      UART_ETHprintf ( D->tpcb,"#%06d %12s| %s | %12s\n",
+      UART_ETHprintf ( D->tpcb,"#%06d %12s| %s | %12s\r\n",
                         D->Id,
                         Actual_Cmd.Buff,
                         Slide,

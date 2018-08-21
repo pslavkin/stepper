@@ -32,6 +32,7 @@
 
 #define DEBUG_MSG ((struct tcp_pcb*)(NULL))
 #define UART_MSG ((struct tcp_pcb*)(1))
+#define ESP_UART_MSG ((struct tcp_pcb*)(2))
 //*****************************************************************************
 //
 // If building with a C++ compiler, make all of the definitions in this header
@@ -64,6 +65,7 @@ extern "C"
 //
 //*****************************************************************************
 extern SemaphoreHandle_t Uart_Studio_Semphr;
+extern SemaphoreHandle_t Print_Mutex;
 
 extern void UARTStdioConfig   ( uint32_t ui32Port, uint32_t ui32Baud,
                             uint32_t ui32SrcClock                              );

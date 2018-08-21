@@ -79,6 +79,7 @@ ${COMPILER}/out.axf: ${COMPILER}/telnet.o
 ${COMPILER}/out.axf: ${COMPILER}/clk.o
 ${COMPILER}/out.axf: ${COMPILER}/wdog.o
 ${COMPILER}/out.axf: ${COMPILER}/commands.o
+${COMPILER}/out.axf: ${COMPILER}/esp8266.o
 ${COMPILER}/out.axf: ${COMPILER}/lwiplib.o
 ${COMPILER}/out.axf: ${COMPILER}/startup_${COMPILER}.o
 ${COMPILER}/out.axf: ${COMPILER}/cmdline.o

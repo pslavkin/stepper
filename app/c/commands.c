@@ -42,11 +42,12 @@ tCmdLineEntry Login_Cmd_Table[] =
 };
 tCmdLineEntry Main_Cmd_Table[] =
 {
-    { "net"    ,Cmd_Main2Ip     ,": network options" }     ,
-    { "motor"  ,Cmd_Main2Motor  ,": motor driver" } ,
-    { "system" ,Cmd_Main2System ,": system options" }      ,
-    { "?"      ,Cmd_Help        ,": help" }                ,
-    { "<"      ,Cmd_Back2Login  ,": back" }                ,
+    { "net"    ,Cmd_Main2Ip     ,": network options" } ,
+    { "motor"  ,Cmd_Main2Motor  ,": motor driver" }    ,
+    { "system" ,Cmd_Main2System ,": system options" }  ,
+    { "esp"    ,Cmd_Main2Esp    ,": esp options" }     ,
+    { "?"      ,Cmd_Help        ,": help" }            ,
+    { "<"      ,Cmd_Back2Login  ,": back" }            ,
     { 0        ,0               ,0 }
 };
 tCmdLineEntry Ip_Cmd_Table[] =
@@ -106,6 +107,13 @@ tCmdLineEntry System_Cmd_Table[] =
     { "<"      ,Cmd_Back2Main ,": back" }                      ,
     { 0        ,0             ,0 }
 };
+tCmdLineEntry Esp_Cmd_Table[] =
+{
+    { "r" ,Cmd_Pipe_Esp  ,": retransmit to esp" } ,
+    { "?" ,Cmd_Help      ,": help" }              ,
+    { "<" ,Cmd_Back2Main ,": back" }              ,
+    { 0   ,0             ,0 }
+};
 //----------------------WELCOME----------------------------------------------------------
 int Cmd_Welcome(struct tcp_pcb* tpcb, int argc, char *argv[])
 {/*{{{*/
@@ -156,6 +164,11 @@ int Cmd_Main2Motor(struct tcp_pcb* tpcb, int argc, char *argv[])
 int Cmd_Main2System(struct tcp_pcb* tpcb, int argc, char *argv[])
 {/*{{{*/
    g_psCmdTable=System_Cmd_Table;
+   return 0;
+}/*}}}*/
+int Cmd_Main2Esp(struct tcp_pcb* tpcb, int argc, char *argv[])
+{/*{{{*/
+   g_psCmdTable=Esp_Cmd_Table;
    return 0;
 }/*}}}*/
 int Cmd_Back2Main(struct tcp_pcb* tpcb, int argc, char *argv[])
@@ -547,9 +560,17 @@ int Cmd_Nowait     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
    Unset_Wait_Busy();
    return 0;
 }/*}}}*/
-//-----------------CMD PROCESS---------------------------------------------------------------
+//---------------ESP-----------------------------------------------------------
+int Cmd_Pipe_Esp(struct tcp_pcb* tpcb, int argc, char *argv[])
+{/*{{{*/
+   if(argc>1) {
+      UART_ETHprintf(ESP_UART_MSG,"%s\r\n",argv[1]);
+   }
+   return 0;
+}/*}}}*/
+//-----------------CMD PROCESS--------------------------------------------------
 char Buff_Cmd[APP_INPUT_BUF_SIZE];
-void Init_Uart(void)
+void Init_Uart0(void)
 {
    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
    ROM_GPIOPinConfigure(GPIO_PA0_U0RX);

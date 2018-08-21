@@ -2,7 +2,7 @@
 #define __COMMANDS_H__
 
 
-extern void Init_Uart(void);
+extern void Init_Uart0(void);
 extern int Cmd_Welcome ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Login   ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Help    ( struct tcp_pcb* tpcb ,int argc ,char *argv[] );
@@ -60,6 +60,9 @@ extern int Cmd_Nowait    ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Spi_Set_Param ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Spi_Get_Param ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Toogle_Pulses ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+
+extern int Cmd_Main2Esp(struct tcp_pcb* tpcb, int argc, char *argv[]);
+extern int Cmd_Pipe_Esp(struct tcp_pcb* tpcb, int argc, char *argv[]);
 
 void User_Commands_Task       ( void* nil                                    );
 extern void DisplayIPAddress  ( struct tcp_pcb* tpcb,uint32_t ui32Addr       );

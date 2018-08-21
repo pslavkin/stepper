@@ -4,5 +4,4 @@ while IFS='' read -r line || [[ -n "$line" ]]; do
     if read ack < fb_fifo; then
       echo "$ack" > ack_fifo;
     fi;
-    sleep 1;
-done 
+done
