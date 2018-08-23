@@ -956,10 +956,12 @@ UART_ETHprintf(struct tcp_pcb* tpcb,const char *pcString, ...)
    int len;
      va_start(vaArgP, pcString);
      len=uvsnprintf(Buff,UART_TX_BUFFER_SIZE,pcString, vaArgP);
-     if(tpcb==UART_MSG || tpcb==DEBUG_MSG )
-        UARTwrite(Buff,len<UART_TX_BUFFER_SIZE?len:UART_TX_BUFFER_SIZE);
-     else 
-        if(tpcb==ESP_UART_MSG)  {
+     switch ((uint32_t)tpcb) {
+        case UART_MSG_CODE:
+        case DEBUG_MSG_CODE:
+            UARTwrite(Buff,len<UART_TX_BUFFER_SIZE?len:UART_TX_BUFFER_SIZE);
+            break;
+        case ESP_MSG_CODE: {
             int i;
             itoaa(len,Header+13,10);
             for(i=0;Header[i]!='\0';i++)
@@ -967,11 +969,18 @@ UART_ETHprintf(struct tcp_pcb* tpcb,const char *pcString, ...)
             Esp_UARTwrite("\r\n",2);
             vTaskDelay(2);
             Esp_UARTwrite(Buff,len<UART_TX_BUFFER_SIZE?len:UART_TX_BUFFER_SIZE);
-           vTaskDelay(2);
-        }
-        else
+            vTaskDelay(2);
+            }
+            break;
+        case CONFIG_ESP_MSG_CODE: {
+               Esp_UARTwrite(Buff,len<UART_TX_BUFFER_SIZE?len:UART_TX_BUFFER_SIZE);
+            }
+            break;
+        default: 
            tcp_write(tpcb,Buff,len<UART_TX_BUFFER_SIZE?len:UART_TX_BUFFER_SIZE,
                       TCP_WRITE_FLAG_COPY);//|TCP_WRITE_FLAG_MORE);
+           break;
+     }
     va_end(vaArgP);
 
    xSemaphoreGive(Print_Mutex);

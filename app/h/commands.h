@@ -63,6 +63,7 @@ extern int Cmd_Toogle_Pulses ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 
 extern int Cmd_Main2Esp(struct tcp_pcb* tpcb, int argc, char *argv[]);
 extern int Cmd_Pipe_Esp(struct tcp_pcb* tpcb, int argc, char *argv[]);
+extern int Cmd_Esp_Bind(struct tcp_pcb* tpcb, int argc, char *argv[]);
 
 void User_Commands_Task       ( void* nil                                    );
 extern void DisplayIPAddress  ( struct tcp_pcb* tpcb,uint32_t ui32Addr       );

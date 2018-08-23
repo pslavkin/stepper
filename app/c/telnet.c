@@ -42,7 +42,7 @@ err_t Rcv_Fn (void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
    if(p!=NULL)  {
       RingBufWrite(&B->RB, p->payload, p->len);
       while(!RingBufEmpty(&B->RB)) {
-         int32_t Len=RingBufPeek(&B->RB,NULL);
+         int32_t Len=RingBufPeek(&B->RB,'\n');
          if(Len>=0) {
             struct Gcode_Queue_Struct D;
             RingBufRead(&B->RB,D.Buff,Len+1);
@@ -71,7 +71,7 @@ err_t Rcv_Fn (void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
 
 void Telnet_Close ( struct tcp_pcb *tpcb)
 {
-   if(tpcb!=DEBUG_MSG && tpcb!=UART_MSG) {
+   if(tpcb!=DEBUG_MSG && tpcb!=UART_MSG && tpcb!=ESP_MSG) {
       tcp_close(tpcb);
    }
 }

@@ -78,7 +78,6 @@ void  Init_Spi_Phisical (void)
     MAP_GPIOPinTypeGPIOOutput ( GPIO_PORTM_BASE,GPIO_PIN_3 );
     Pulse_Hi();
 
-    xTaskCreate(Busy_Read_Task,"busy read",configMINIMAL_STACK_SIZE ,NULL ,1 ,NULL );
 }
 //-------------------------------------------------------------
 void Send_Cmd2Spi(struct tcp_pcb* tpcb,uint8_t* Params,uint8_t Len)

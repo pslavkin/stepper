@@ -49,6 +49,7 @@ int main(void)
    xTaskCreate ( User_Commands_Task ,"user commands" ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
    xTaskCreate ( Gcode_Parser       ,"gcode"         ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
    xTaskCreate ( Esp_Task           ,"esp"           ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
+//    xTaskCreate(Busy_Read_Task,"busy read",configMINIMAL_STACK_SIZE ,NULL ,1 ,NULL );
    Init_Telnet         ( );
    Init_Spi_Phisical   ( );
    vTaskStartScheduler ( );

@@ -72,7 +72,7 @@ tRingBufObject;
 // API Function prototypes
 //
 //*****************************************************************************
-extern int32_t RingBufPeek(tRingBufObject *psRingBuf, uint8_t *pui8Data);
+extern int32_t RingBufPeek(tRingBufObject *psRingBuf, uint8_t C);
 extern bool RingBufFull(tRingBufObject *psRingBuf);
 extern bool RingBufEmpty(tRingBufObject *psRingBuf);
 extern void RingBufFlush(tRingBufObject *psRingBuf);

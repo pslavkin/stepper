@@ -37,7 +37,7 @@ SemaphoreHandle_t Esp_Uart_Semphr;
 
 void Init_Uart7(void)
 {
-    Esp_Uart_Semphr = xSemaphoreCreateCounting ( 10, 0 );
+    Esp_Uart_Semphr = xSemaphoreCreateCounting ( 1000, 0 );
     RingBufInit ( &Esp_Rx_RB,Esp_Rx_Buffer,sizeof(Esp_Rx_Buffer));
     RingBufInit ( &Esp_Tx_RB,Esp_Tx_Buffer,sizeof(Esp_Tx_Buffer));
 
@@ -75,13 +75,13 @@ void Esp_Task(void* nil)
    while(1) {
 //      while(xSemaphoreTake(Esp_Uart_Semphr,portMAX_DELAY)!=pdTRUE) 
 //            ;
-      xSemaphoreTake(Esp_Uart_Semphr,pdMS_TO_TICKS(100));
+      xSemaphoreTake(Esp_Uart_Semphr,pdMS_TO_TICKS(1000));
       {
-         int32_t Len=RingBufPeek(&Esp_Rx_RB,NULL);
+         int32_t Len=RingBufPeek(&Esp_Rx_RB,'\n');
          if(Len>0) {
             RingBufRead(&Esp_Rx_RB,D.Buff,Len+1);
             D.Buff[Len]='\0';
-            D.tpcb = ESP_UART_MSG;
+            D.tpcb = ESP_MSG;
             D.Id   = Esp_Id;
             if(ustrncmp("+IPD,0,",(char*)D.Buff,7)==0) {
                   char L[10];
@@ -94,13 +94,12 @@ void Esp_Task(void* nil)
                   E.tpcb=D.tpcb;
                   E.Id=Esp_Id;
                   Esp_Id++;
-//                  UART_ETHprintf(UART_MSG,"llego dato de largo %d y dice: %s\r\n",Len,E.Buff);
                   while(xQueueSend(Gcode_Queue,&E,portMAX_DELAY)!=pdTRUE)
                      ;
                   Print_Slide(&E);
                   }
-//            else
-//               UART_ETHprintf(UART_MSG,"%s\r\n",D.Buff);
+            else
+               UART_ETHprintf(UART_MSG,"%s\r\n",D.Buff);
 //            while(xQueueSend(Gcode_Queue,&D,portMAX_DELAY)!=pdTRUE)
 //               ;
             }
@@ -163,7 +162,7 @@ void UART_Esp_Handler(void)
             // If there is space in the receive buffer,
             if(!RingBufFull(&Esp_Rx_RB)) {
                 // Store the new character in the receive buffer
-                RingBufWrite(&Esp_Rx_RB,(uint8_t*)&cChar,1);
+                RingBufWriteOne(&Esp_Rx_RB,cChar);
                 if(cChar == '\n')
                    xSemaphoreGiveFromISR(Esp_Uart_Semphr,NULL);
             }

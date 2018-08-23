@@ -465,14 +465,14 @@ RingBufRead(tRingBufObject *psRingBuf, uint8_t *pui8Data, uint32_t ui32Length)
         pui8Data[ui32Temp] = RingBufReadOne(psRingBuf);
     }
 }
-int32_t RingBufPeek(tRingBufObject *psRingBuf, uint8_t *pui8Data)
+int32_t RingBufPeek(tRingBufObject *psRingBuf, uint8_t C)
 {
     uint32_t ui32Temp;
     uint32_t Used=RingBufUsed(psRingBuf);
     uint32_t Index=psRingBuf->ui32ReadIndex;
     for(ui32Temp = 0; ui32Temp < Used; ui32Temp++)
     {
-        if(psRingBuf->pui8Buf[Index] != '\n' && psRingBuf->pui8Buf[Index]!= '\r')
+        if(psRingBuf->pui8Buf[Index] != C) // && psRingBuf->pui8Buf[Index]!= '\r')
             UpdateIndexAtomic(&Index, 1,psRingBuf->ui32Size);
         else 
            return ui32Temp;

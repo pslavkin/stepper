@@ -3,166 +3,178 @@
 login 1234
 motor
 init
-acc 5000
-dec 5000
-maxv 100
+maxv 3000
+acc  5000
+dec  5000
 wait
-home
-wait
-goto 1000
+goto 3000
 wait
 goto  0
 wait
-goto 1000
+goto 3000
 wait
 goto  0
 wait
-goto 10000
+goto 3000
 wait
 goto  0
 wait
-goto 1000
+goto 3000
 wait
 goto  0
 wait
-goto 1000
+goto 3000
 wait
 goto  0
 wait
-goto 1000
+goto 3000
 wait
 goto  0
 wait
-goto 1000
+goto 3000
 wait
 goto  0
 wait
-goto 1000
+goto 3000
 wait
 goto  0
 wait
-goto 1000
+goto 3000
 wait
 goto  0
 wait
-goto 1000
+goto 3000
 wait
 goto  0
 wait
-goto 1000
+goto 3000
 wait
 goto  0
 wait
-goto 100
+goto 200
 wait
 goto  0
 wait
-goto 100
+goto 200
 wait
 goto  0
 wait
-goto 100
+goto 200
 wait
 goto  0
 wait
-goto 100
+goto 200
 wait
 goto  0
 wait
-goto 100
+goto 200
 wait
 goto  0
 wait
-goto 100
+goto 200
 wait
 goto  0
 wait
-goto 100
+goto 200
 wait
 goto  0
 wait
-goto 100
+goto 200
 wait
 goto  0
 wait
-goto 100
+goto 200
 wait
 goto  0
 wait
-goto 100
+goto 200
 wait
 goto  0
 wait
-goto 100
+goto 200
 wait
 goto  0
 wait
-goto 100
+goto 200
 wait
 goto  0
 wait
-goto 100
+goto 200
 wait
 goto  0
 wait
-goto 10
+goto 200
 wait
 goto  0
 wait
-goto 10
+goto 200
 wait
 goto  0
 wait
-goto 10
+goto 200
 wait
 goto  0
 wait
-goto 1000
+goto 200
 wait
 goto  0
 wait
-goto 1000
+goto 200
 wait
 goto  0
 wait
-goto 1000
+goto 200
 wait
 goto  0
 wait
-goto 1000
+goto 200
 wait
 goto  0
 wait
-goto 1000
+goto 200
 wait
 goto  0
 wait
-goto  0
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
-<
+.
+----------fin 0
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+

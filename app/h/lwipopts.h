@@ -65,7 +65,7 @@
 //*****************************************************************************
 //#define MEM_LIBC_MALLOC                 0
 #define MEM_ALIGNMENT                   4          // default is 1
-#define MEM_SIZE                        (16*1024)  // con 2k no anda con 16, anda 2 horas
+#define MEM_SIZE                        (32*1024)  // con 2k no anda con 16, anda 2 horas
 #define MEMP_OVERFLOW_CHECK             0
 #define MEMP_SANITY_CHECK               1
 //#define MEM_USE_POOLS                   0

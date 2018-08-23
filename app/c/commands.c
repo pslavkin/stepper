@@ -110,6 +110,7 @@ tCmdLineEntry System_Cmd_Table[] =
 tCmdLineEntry Esp_Cmd_Table[] =
 {
     { "r" ,Cmd_Pipe_Esp  ,": retransmit to esp" } ,
+    { "b" ,Cmd_Esp_Bind  ,": esp bind port" } ,
     { "?" ,Cmd_Help      ,": help" }              ,
     { "<" ,Cmd_Back2Main ,": back" }              ,
     { 0   ,0             ,0 }
@@ -287,7 +288,8 @@ void DisplayIPAddress(struct tcp_pcb* tpcb,uint32_t ui32Addr)
 //---------------SYSTEM-----------------------------------------------------------
 int Cmd_TaskList(struct tcp_pcb* tpcb, int argc, char *argv[])
 {/*{{{*/
-   if(argc==2 && ustrcmp("tareas",argv[1])==0) {
+  // if(argc== 2  && ustrcmp("tareas",argv[1])==0) 
+   {
       char* Buff=(char*)pvPortMalloc(UART_TX_BUFFER_SIZE);
       UART_ETHprintf(tpcb,"\r\n");
       vTaskList( Buff );
@@ -564,7 +566,16 @@ int Cmd_Nowait     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 int Cmd_Pipe_Esp(struct tcp_pcb* tpcb, int argc, char *argv[])
 {/*{{{*/
    if(argc>1) {
-      UART_ETHprintf(ESP_UART_MSG,"%s\r\n",argv[1]);
+      UART_ETHprintf(CONFIG_ESP_MSG,"%s\r\n",argv[1]);
+   }
+   return 0;
+}/*}}}*/
+int Cmd_Esp_Bind(struct tcp_pcb* tpcb, int argc, char *argv[])
+{/*{{{*/
+   if(argc>1) {
+      UART_ETHprintf(CONFIG_ESP_MSG,"AT+CIPMUX=1\r\n");
+      vTaskDelay(pdMS_TO_TICKS(1000));
+      UART_ETHprintf(CONFIG_ESP_MSG,"AT+CIPSERVER=1,%d\r\n",atoi(argv[1]));
    }
    return 0;
 }/*}}}*/
