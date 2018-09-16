@@ -1,6 +1,9 @@
 #ifndef SPI_PHISICAL
 #define SPI_PHISICAL
 
+#include <stdbool.h>
+
+#define NUM_AXES 2
 enum Step01_App_Cmd {
    NOP              = 0x00,   //0b_0000_0000,
    Set_Param_Cmd    = 0x00,   //0b_0000_0000,
@@ -27,8 +30,14 @@ enum Step01_Registers{
    Acc_Reg       = 0x05,
    Dec_Reg       = 0x06,
    Max_Speed_Reg = 0x07,
-   Min_Speed_Reg = 0x08
+   Min_Speed_Reg = 0x08,
+   Config_Reg    = 0x1A,
 };
+
+typedef struct  {
+   uint8_t Data[NUM_AXES][4];
+   uint8_t Len;
+}Spi_Params;
 //------------------------------------------------------
 extern void    Init_Spi_Phisical ( void );
 extern void    Cs_Hi             ( void );
@@ -37,26 +46,32 @@ extern void    Rst_Hi            ( void );
 extern void    Rst_Lo            ( void );
 extern bool    Busy_Read         ( void );
 // ------------------------------------------------------
-extern void    Send_Data2Spi     ( void                        );
+extern void       Send_Data2Spi   ( void                                                );
+void Get_Reg                      ( uint8_t Reg, Spi_Params* Ans, uint8_t Len           );
+void Get_Reg1                     ( uint8_t Reg, Spi_Params* Ans                        );
+void Get_Reg2                     ( uint8_t Reg, Spi_Params* Ans                        );
+void Get_Reg3                     ( uint8_t Reg, Spi_Params* Ans                        );
+// --------------------------------------------------------------------------------
+void Set_Reg                      ( uint8_t Reg, uint32_t V,uint8_t Len                 );
+void Set_Reg1                     ( uint8_t Reg, uint8_t  V                             );
+void Set_Reg2                     ( uint8_t Reg, uint16_t V                             );
+void Set_Reg3                     ( uint8_t Reg, uint32_t V                             );
+// --------------------------------------------------------------------------------
+void Get_App                      ( uint8_t Cmd, Spi_Params* Ans, uint8_t Len           );
+void Get_App3                     ( uint8_t Cmd, Spi_Params* Ans                        );
+void Send_App                     ( uint8_t Cmd, uint8_t Option,uint32_t *V,uint8_t Len );
+void Send_App0                    ( uint8_t Cmd, uint8_t Option                         );
+void Send_App1                    ( uint8_t Cmd, uint8_t Option, uint8_t  V             );
+void Send_App2                    ( uint8_t Cmd, uint8_t Option, uint16_t V             );
+void Send_App3                    ( uint8_t Cmd, uint8_t Option, uint32_t V             );
 // ------------------------------------------------------
-extern void       Send_Cmd2Spi   ( struct tcp_pcb* tpcb,uint8_t* Params,uint8_t Len );
-extern uint8_t    Get_Reg1       ( uint8_t Reg                                      );
-extern uint16_t   Get_Reg2       ( uint8_t Reg                                      );
-extern uint32_t   Get_Reg3       ( uint8_t Reg                                      );
-extern void       Set_Reg1       ( uint8_t Reg, uint8_t V                           );
-extern void       Set_Reg2       ( uint8_t Reg, uint16_t V                          );
-extern void       Set_Reg3       ( uint8_t Reg, uint16_t V                          );
-extern uint32_t   Get_App3       ( uint8_t Cmd                                      );
-extern void       Send_App0      ( uint8_t Cmd, uint8_t Option                      );
-extern void       Send_App1      ( uint8_t Cmd, uint8_t Option, uint8_t V           );
-extern void       Send_App2      ( uint8_t Cmd, uint8_t Option, uint16_t V          );
-extern void       Send_App3      ( uint8_t Cmd, uint8_t Option, uint32_t V          );
-extern void       Toogle_Pulses  ( uint32_t Pulses                                  );
-extern void       Init_Powerstep ( struct tcp_pcb* tpcb                             );
-extern void       Busy_Read_Task ( void* nil                                        );
-//------------------------------------------------------
-extern void  Set_Wait_Busy     (void);
-extern void  Unset_Wait_Busy   (void);
+extern void       Send_Cmd2Spi    ( struct tcp_pcb* tpcb ,Spi_Params* Params            );
+extern void       Toogle_Pulses   ( uint32_t Pulses                                     );
+extern void       Init_Powerstep  ( struct tcp_pcb* tpcb                                );
+extern void       Busy_Read_Task  ( void* nil                                           );
+// ------------------------------------------------------
+extern void       Set_Wait_Busy   ( void                                                );
+extern void       Unset_Wait_Busy ( void                                                );
 
 
 #endif

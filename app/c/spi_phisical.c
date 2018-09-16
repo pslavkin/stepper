@@ -10,22 +10,24 @@
 #include "driverlib/ssi.h"
 #include "driverlib/rom_map.h"
 #include "opt.h"
+#include "commands.h"
 #include "spi_phisical.h"
 #include "state_machine.h"
+#include "utils/lwiplib.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
 #include "semphr.h"
 //-------------------------------------------------------------
-void Cs_Hi     ( void ) { GPIOPinSet   ( GPIO_PORTN_BASE ,GPIO_PIN_2 );}
-void Cs_Lo     ( void ) { GPIOPinReset ( GPIO_PORTN_BASE ,GPIO_PIN_2 );}
+void Cs_Hi    ( void ) { GPIOPinSet   ( GPIO_PORTN_BASE ,GPIO_PIN_2 );}
+void Cs_Lo    ( void ) { GPIOPinReset ( GPIO_PORTN_BASE ,GPIO_PIN_2 );}
 
-void Rst_Hi    ( void ) { GPIOPinSet   ( GPIO_PORTN_BASE ,GPIO_PIN_3 );}
-void Rst_Lo    ( void ) { GPIOPinReset ( GPIO_PORTN_BASE ,GPIO_PIN_3 );}
+void Rst_Hi   ( void ) { GPIOPinSet   ( GPIO_PORTN_BASE ,GPIO_PIN_3 );}
+void Rst_Lo   ( void ) { GPIOPinReset ( GPIO_PORTN_BASE ,GPIO_PIN_3 );}
 
-void Pulse_Hi    ( void ) { GPIOPinSet   ( GPIO_PORTM_BASE ,GPIO_PIN_3 );}
-void Pulse_Lo    ( void ) { GPIOPinReset ( GPIO_PORTM_BASE ,GPIO_PIN_3 );}
+void Pulse_Hi ( void ) { GPIOPinSet   ( GPIO_PORTM_BASE ,GPIO_PIN_3 );}
+void Pulse_Lo ( void ) { GPIOPinReset ( GPIO_PORTM_BASE ,GPIO_PIN_3 );}
 
 bool Busy_Read ( void ) { return GPIOPinRead ( GPIO_PORTP_BASE ,GPIO_PIN_2 ) ;}
 
@@ -42,8 +44,6 @@ void  Unset_Wait_Busy   (void)
       Wait_Busy=false;
       UART_ETHprintf(DEBUG_MSG,"wait false\r\n");
 }
-
-
 void  Init_Spi_Phisical (void)
 {
     Busy_Sem = xSemaphoreCreateBinary();
@@ -77,94 +77,97 @@ void  Init_Spi_Phisical (void)
     //pulse
     MAP_GPIOPinTypeGPIOOutput ( GPIO_PORTM_BASE,GPIO_PIN_3 );
     Pulse_Hi();
-
 }
 //-------------------------------------------------------------
-void Send_Cmd2Spi(struct tcp_pcb* tpcb,uint8_t* Params,uint8_t Len)
+void Send_Cmd2Spi(struct tcp_pcb* tpcb, Spi_Params* Params)
 {
    uint32_t Ans;
-   uint8_t i;
-   UART_ETHprintf(DEBUG_MSG,"\r\n");
-   for(i=0;i<Len;i++) {
+   uint8_t i,n;
+   for(i=0;i<Params->Len;i++) {
       Cs_Lo();
-         MAP_SSIDataPut(SSI2_BASE,Params[i]);
-         MAP_SSIDataGet(SSI2_BASE,&Ans);
-         UART_ETHprintf(DEBUG_MSG,"Command=0x%02x - Ans=0x%02x\r\n",Params[i],(uint8_t) Ans);
-         Params[i]=(uint8_t)Ans;
-         if(Wait_Busy==true && i==(Len-1)) {
-            while(Busy_Read()==0)
-               ;
+         for(n=0;n<NUM_AXES;n++) {
+            MAP_SSIDataPut(SSI2_BASE, Params->Data[n][i]);
+            UART_ETHprintf(DEBUG_MSG,"Command=0x%02x -",Params->Data[n][i]);
+            MAP_SSIDataGet(SSI2_BASE,&Ans);
+            Params->Data[n][i]=(uint8_t)Ans;
+            UART_ETHprintf(DEBUG_MSG,"Ans=0x%02x\r\n",Params->Data[n][i]);
+            }
+      if(Wait_Busy==true && i==(Params->Len-1)) {
+         while(Busy_Read()==0)
+            ;
          Wait_Busy=false;
-         }
+      }
       Cs_Hi();
    }
 }
-uint8_t Get_Reg1(uint8_t Reg)
+//--------------------------------------------------------------------------------
+void Get_Reg(uint8_t Reg, Spi_Params* Ans, uint8_t Len)
 {
-   uint8_t Params[2]={Reg|Get_Param_Cmd,0};
-   Send_Cmd2Spi(DEBUG_MSG,Params,2);
-   return Params[1];
+   Ans->Len=Len;
+   Cmd2Params   ( Ans       ,Reg|Get_Param_Cmd );
+   Send_Cmd2Spi ( DEBUG_MSG ,Ans               );
 }
-uint16_t Get_Reg2(uint8_t Reg)
+void Get_Reg1 ( uint8_t Reg, Spi_Params* Ans ) { Get_Reg(Reg,Ans,2); }
+void Get_Reg2 ( uint8_t Reg, Spi_Params* Ans ) { Get_Reg(Reg,Ans,3); }
+void Get_Reg3 ( uint8_t Reg, Spi_Params* Ans ) { Get_Reg(Reg,Ans,4); }
+//--------------------------------------------------------------------------------
+void Set_Reg(uint8_t Reg, uint32_t V,uint8_t Len)
 {
-   uint8_t Params[3]={Reg|Get_Param_Cmd,0};
-   Send_Cmd2Spi(DEBUG_MSG,Params,3);
-   return (Params[1]<<8) + (Params[2]);
+   Spi_Params Params;
+   uint32_t V_Array[NUM_AXES];
+   uint8_t i;
+   for(i=0;i<NUM_AXES;i++)
+      V_Array[i]=V;
+   Params.Len=Len;
+   Cmd2Params   ( &Params,Reg|Set_Param_Cmd );
+   Value2Params ( &Params,V_Array           );
+   Send_Cmd2Spi ( DEBUG_MSG,&Params         );
 }
-uint32_t Get_Reg3(uint8_t Reg)
+void Set_Reg1 ( uint8_t Reg, uint8_t  V ) { Set_Reg(Reg,V,2);}
+void Set_Reg2 ( uint8_t Reg, uint16_t V ) { Set_Reg(Reg,V,3);}
+void Set_Reg3 ( uint8_t Reg, uint32_t V ) { Set_Reg(Reg,V,4);}
+//--------------------------------------------------------------------------------
+void Get_App(uint8_t Cmd, Spi_Params* Ans, uint8_t Len)
 {
-   uint8_t Params[4]={Reg|Get_Param_Cmd,0};
-   Send_Cmd2Spi(DEBUG_MSG,Params,4);
-   return (Params[1]<<16) + (Params[2]<<8) + (Params[3]);
+   Ans->Len=Len;
+   Cmd2Params   ( Ans,Cmd);
+   Send_Cmd2Spi ( DEBUG_MSG,Ans );
 }
-void Set_Reg1(uint8_t Reg, uint8_t V)
+void Get_App3(uint8_t Cmd, Spi_Params* Ans) { Get_App(Cmd,Ans,4); }
+//--------------------------------------------------------------------------------
+void Send_App(uint8_t Cmd, uint8_t Option,uint32_t *V,uint8_t Len)
 {
-   uint8_t Params[2]={Set_Param_Cmd|Reg,V};
-   Send_Cmd2Spi(DEBUG_MSG,Params,2);
+   Spi_Params Params;
+   Params.Len=Len;
+   Cmd2Params   ( &Params,Cmd|Option );
+   Value2Params ( &Params,V          );
+   Send_Cmd2Spi ( DEBUG_MSG,&Params  );
 }
-void Set_Reg2(uint8_t Reg, uint16_t V)
+void Send_App_Equal(uint8_t Cmd, uint8_t Option,uint32_t V,uint8_t Len)
 {
-   uint8_t Params[3]={Set_Param_Cmd|Reg,V>>8,V};
-   Send_Cmd2Spi(DEBUG_MSG,Params,3);
+   uint32_t V_Array[NUM_AXES];
+   uint8_t i;
+   for(i=0;i<NUM_AXES;i++)
+      V_Array[i]=V;
+   Send_App(Cmd,Option,V_Array,Len);
 }
-void Set_Reg3(uint8_t Reg, uint16_t V)
-{
-   uint8_t Params[4]={Set_Param_Cmd|Reg,V>>16,V>>8,V};
-   Send_Cmd2Spi(DEBUG_MSG,Params,4);
-}
-uint32_t Get_App3(uint8_t Cmd)
-{
-   uint8_t Params[4]={Cmd,0};
-   Send_Cmd2Spi (DEBUG_MSG,Params,4);
-   return (Params[1]<<16) + (Params[2]<<8) + (Params[3]);
-}
-void Send_App0(uint8_t Cmd, uint8_t Option)
-{
-   uint8_t Params[1]={Cmd|Option};
-   Send_Cmd2Spi (DEBUG_MSG,Params,1);
-}
-void Send_App1(uint8_t Cmd, uint8_t Option, uint8_t V)
-{
-   uint8_t Params[2]={Cmd|Option,V};
-   Send_Cmd2Spi (DEBUG_MSG,Params,2);
-}
-void Send_App2(uint8_t Cmd, uint8_t Option, uint16_t V)
-{
-   uint8_t Params[3]={Cmd|Option,V>>8,V};
-   Send_Cmd2Spi (DEBUG_MSG,Params,3);
-}
-void Send_App3(uint8_t Cmd, uint8_t Option, uint32_t V)
-{
-   uint8_t Params[4]={Cmd|Option,V>>16,V>>8,V};
-   Send_Cmd2Spi (DEBUG_MSG,Params,4);
-}
+void Send_App0 ( uint8_t Cmd, uint8_t Option             ) { Send_App_Equal(Cmd,Option,0,1);}
+void Send_App1 ( uint8_t Cmd, uint8_t Option, uint8_t  V ) { Send_App_Equal(Cmd,Option,V,2);}
+void Send_App2 ( uint8_t Cmd, uint8_t Option, uint16_t V ) { Send_App_Equal(Cmd,Option,V,3);}
+void Send_App3 ( uint8_t Cmd, uint8_t Option, uint32_t V ) { Send_App_Equal(Cmd,Option,V,4);}
+//--------------------------------------------------------------------------------
+
+
+
 void Init_Powerstep(struct tcp_pcb* tpcb)
 {
-   uint8_t p[]= { 9  ,150 ,10 ,150 ,11 ,150 ,12 ,150 , // compensacion de vss
-                  26 ,44  ,8  ,                        // que no se apague el puente si salta overcurrente
-                  5  ,0   ,10 ,6   ,0  ,10};           // aceleracion y descaeleracion
-//                  0x16  ,0x80};                       // full step
-   Send_Cmd2Spi(tpcb,p,sizeof p);
+   Set_Reg1( 9,150);
+   Set_Reg1(10,150);
+   Set_Reg1(11,150);
+   Set_Reg1(12,150);
+   Set_Reg2(Config_Reg,0x2C08);
+   Set_Reg2(Dec_Reg,0x000A);
+   Set_Reg2(Acc_Reg,0x000A);
 }
 void Toogle_Pulses(uint32_t Pulses)
 {
@@ -176,7 +179,6 @@ void Toogle_Pulses(uint32_t Pulses)
       Delay_Useg(2000);  //uso esto porque no anda vtaskdelay para tiempos cortos.. tengo el tick en 100hz
    }
 }
-
 void Busy_Read_Task(void* nil)
 {
    while(1) {

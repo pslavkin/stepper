@@ -358,24 +358,54 @@ int Cmd_Pwd(struct tcp_pcb* tpcb, int argc, char *argv[])
    return 0;
 }/*}}}*/
 //-------------MOTOR--------------------------------------------------------------
+void Cmd2Params(Spi_Params *Params,uint8_t Cmd)
+{
+   uint8_t n;
+   for(n=0;n<NUM_AXES;n++)
+         Params->Data[n][0]=Cmd;
+}
+void Value2Params(Spi_Params *Params,uint32_t *V)
+{
+   uint8_t i,n;
+   uint8_t Len=Params->Len-1;
+   for(n=0;n<NUM_AXES;n++)
+      for(i=0;i<Len;i++)
+         Params->Data[n][Len-i]=V[n]>>(i*8);
+}
+void Params2Value(Spi_Params *Params,uint32_t *Ans)
+{
+   uint8_t i,n;
+   uint8_t Len=Params->Len-1;
+   for(n=0;n<NUM_AXES;n++) {
+      Ans[n]=0;
+      for(i=0;i<Len;i++)
+         Ans[n]+=(Params->Data[n][Len-i])<<(i*8);
+   }
+}
+
+
 int Cmd_Spi_Get_Param(struct tcp_pcb* tpcb, int argc, char *argv[])
 {/*{{{*/
    if(argc>1) {
-      uint32_t Ans=0;
+      uint32_t Ans[NUM_AXES]={0};
+      Spi_Params Params;
       switch (atoi(argv[1])) {
             case 1:
-               Ans=Get_Reg1(atoi(argv[2]));
+               Get_Reg1(atoi(argv[2]),&Params);
+               Params2Value(&Params,Ans);
                break;
             case 2:
-               Ans=Get_Reg2(atoi(argv[2]));
+               Get_Reg2(atoi(argv[2]),&Params);
+               Params2Value(&Params,Ans);
                break;
             case 3:
-               Ans=Get_Reg3(atoi(argv[2]));
+               Get_Reg3(atoi(argv[2]),&Params);
+               Params2Value(&Params,Ans);
                break;
             default:
                break;
       }
-      UART_ETHprintf(tpcb,"Reg: %d = %d \r\n",atoi(argv[2]),Ans);
+      UART_ETHprintf(tpcb,"Reg: %d = %x %x\r\n",atoi(argv[2]),Ans[0],Ans[1]);
    }
    return 0;
 }/*}}}*/
@@ -481,7 +511,11 @@ int Cmd_Spi_Hard_Hiz   ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 }/*}}}*/
 int Cmd_Spi_Status     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   UART_ETHprintf(tpcb,"status= 0x%06x\r\n",Get_App3(Get_Status_Cmd));
+   Spi_Params Params;
+   uint32_t Ans[NUM_AXES];
+   Get_App3(Get_Status_Cmd,&Params);
+   Params2Value(&Params,Ans);
+   UART_ETHprintf(tpcb,"status= 0x%06x 0x%06x \r\n",Ans[0],Ans[1]);
    return 0;
 }/*}}}*/
 int Cmd_Toogle_Pulses(struct tcp_pcb* tpcb, int argc, char *argv[])
@@ -496,59 +530,94 @@ int Cmd_Toogle_Pulses(struct tcp_pcb* tpcb, int argc, char *argv[])
 }/*}}}*/
 int Cmd_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   float V=Get_Reg3 (Speed_Reg)/67.108864;
-   UART_ETHprintf(tpcb,"step/seg= %f\r\n",V);
+   Spi_Params  Params;
+   uint32_t    Ans[ NUM_AXES ];
+   float       V  [ NUM_AXES ];
+   uint8_t i;
+   Get_Reg3(Speed_Reg,&Params);
+   Params2Value(&Params,Ans);
+   for(i=0;i<NUM_AXES;i++)
+      V[i]=Ans[i]/67.108864;
+   UART_ETHprintf(tpcb,"step/seg= %f %f\r\n",V[0],V[1]);
    return 0;
 }/*}}}*/
 int Cmd_Max_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
+   Spi_Params  Params         ;
+   uint32_t    Ans[ NUM_AXES ];
+   float       V  [ NUM_AXES ];
+   uint8_t     i              ;
    if(argc>1) {
       float V=(atol(argv[1]))*0.065535;
-      UART_ETHprintf(DEBUG_MSG,"step/seg= %f\r\n",V);
-      Set_Reg2 (Max_Speed_Reg, (uint32_t)V);
+      UART_ETHprintf ( DEBUG_MSG,"step/seg= %f\r\n",V )  ;
+      Set_Reg2       ( Max_Speed_Reg, (uint16_t       )V);
    }
    else {
-      float V=Get_Reg2 (Max_Speed_Reg)/0.065535;
-      UART_ETHprintf(tpcb,"step/seg= %f\r\n",V);
+      Get_Reg2     ( Max_Speed_Reg,&Params );
+      Params2Value ( &Params,Ans           );
+      for(i=0;i<NUM_AXES;i++)
+         V[i]=Ans[i]/0.065535;
+      UART_ETHprintf(tpcb,"step/seg= %f %f\r\n",V[0],V[1]);
    }
    return 0;
 }/*}}}*/
 int Cmd_Min_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
+   Spi_Params  Params         ;
+   uint32_t    Ans[ NUM_AXES ];
+   float       V  [ NUM_AXES ];
+   uint8_t     i              ;
    if(argc>1) {
       float V=(atol(argv[1]))*4.194304;
-      UART_ETHprintf(DEBUG_MSG,"step/seg= %f\r\n",V);
-      Set_Reg2 (Min_Speed_Reg, (uint32_t)V);
+      UART_ETHprintf ( DEBUG_MSG,"step/seg= %f\r\n",V )  ;
+      Set_Reg2       ( Min_Speed_Reg, (uint16_t       )V);
    }
    else {
-      float V=Get_Reg2 (Min_Speed_Reg)/4.194304;
-      UART_ETHprintf(tpcb,"step/seg= %f\r\n",V);
+      Get_Reg2     ( Min_Speed_Reg,&Params );
+      Params2Value ( &Params,Ans           );
+      for(i=0;i<NUM_AXES;i++)
+         V[i]=Ans[i]/4.194304;
+      UART_ETHprintf(tpcb,"step/seg= %f %f\r\n",V[0],V[1]);
    }
    return 0;
 }/*}}}*/
 int Cmd_Acc     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
+   Spi_Params  Params         ;
+   uint32_t    Ans[ NUM_AXES ];
+   float       V  [ NUM_AXES ];
+   uint8_t     i              ;
    if(argc>1) {
       float V=(atol(argv[1]))*0.068719476736;
       UART_ETHprintf(DEBUG_MSG,"[step/seg]2= %f\r\n",V);
-      Set_Reg2 (Acc_Reg, (uint32_t)V);
+      Set_Reg2 (Acc_Reg, (uint16_t)V);
    }
    else {
-      float V=Get_Reg2 (Acc_Reg)/0.068719476736;
-      UART_ETHprintf(tpcb,"[step/seg]2= %f\r\n",V);
+      Get_Reg2     ( Acc_Reg,&Params );
+      Params2Value ( &Params,Ans     );
+      for(i=0;i<NUM_AXES;i++)
+         V[i]=Ans[i]/0.068719476736;
+      UART_ETHprintf(tpcb,"[step/seg]2= %f %f\r\n",V[0],V[1]);
    }
    return 0;
 }/*}}}*/
 int Cmd_Dec     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
+   Spi_Params  Params         ;
+   uint32_t    Ans[ NUM_AXES ];
+   float       V  [ NUM_AXES ];
+   uint8_t     i              ;
    if(argc>1) {
       float V=(atol(argv[1]))*0.068719476736;
       UART_ETHprintf(DEBUG_MSG,"[step/seg]2= %f\r\n",V);
-      Set_Reg2 (Dec_Reg, (uint32_t)V);
+      Set_Reg2 (Dec_Reg, (uint16_t)V);
    }
    else {
-      float V=Get_Reg2 (Dec_Reg)/0.068719476736;
-      UART_ETHprintf(tpcb,"[step/seg]2= %f\r\n",V);
+      Get_Reg2     ( Dec_Reg,&Params );
+      Params2Value ( &Params,Ans     );
+      for(i=0;i<NUM_AXES;i++)
+         V[i]=Ans[i]/0.068719476736;
+      UART_ETHprintf(tpcb,"[step/seg]2= %f %f\r\n",V[0],V[1]);
    }
    return 0;
 }/*}}}*/

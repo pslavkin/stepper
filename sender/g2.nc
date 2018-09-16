@@ -135,6 +135,7 @@ goto 200
 wait
 goto  0
 wait
+hiz
 .
 ----------fin 0
 .

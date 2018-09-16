@@ -138,6 +138,7 @@ wait
 goto  0
 wait
 goto  0
+hiz
 <
 <
 <
