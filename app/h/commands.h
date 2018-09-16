@@ -5,14 +5,15 @@
 
 
 
-extern void Init_Uart0   ( void                                         );
-extern void Cmd2Params   ( Spi_Params *Params,uint8_t Cmd               );
-extern void Value2Params ( Spi_Params *Params,uint32_t *V               );
-extern void Params2Value ( Spi_Params *Params,uint32_t *Ans             );
-extern int  Cmd_Welcome  ( struct tcp_pcb* tpcb, int argc, char *argv[] );
-extern int  Cmd_Login    ( struct tcp_pcb* tpcb, int argc, char *argv[] );
-extern int  Cmd_Help     ( struct tcp_pcb* tpcb ,int argc ,char *argv[] );
-extern int  Cmd_Exit     ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern void Init_Uart0            ( void                                           );
+extern void Cmd2Params_Individual ( Spi_Params *Params,uint8_t Cmd,uint8_t* Option );
+extern void Cmd2Params            ( Spi_Params *Params,uint8_t Cmd                 );
+extern void Value2Params          ( Spi_Params *Params,uint32_t *V                 );
+extern void Params2Value          ( Spi_Params *Params,uint32_t *Ans               );
+extern int  Cmd_Welcome           ( struct tcp_pcb* tpcb, int argc, char *argv[]   );
+extern int  Cmd_Login             ( struct tcp_pcb* tpcb, int argc, char *argv[]   );
+extern int  Cmd_Help              ( struct tcp_pcb* tpcb ,int argc ,char *argv[]   );
+extern int  Cmd_Exit              ( struct tcp_pcb* tpcb, int argc, char *argv[]   );
 
 
 extern int Cmd_Back2Login     ( struct tcp_pcb* tpcb, int argc, char *argv[] );

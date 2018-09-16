@@ -81,8 +81,8 @@ tCmdLineEntry Motor_Cmd_Table[] =
     { "hiz"     ,Cmd_Spi_Soft_Hiz   ,": Puts the bridges in high impedance status after a deceleration phase" }               ,
     { "hhiz"    ,Cmd_Spi_Hard_Hiz   ,": Puts the bridges in high impedance status immediately" }                              ,
     { "stat"    ,Cmd_Spi_Status     ,": Returns the status register value" }                                                  ,
-    { "sp"      ,Cmd_Spi_Set_Param  ,": Set param comand ej: sp 5 1234" }                                                     ,
-    { "gp"      ,Cmd_Spi_Get_Param  ,": Get param comand ej: gp 5" }                                                          ,
+    { "sp"      ,Cmd_Spi_Set_Param  ,": Set param comand ej: sp 2 5 1234" }                                                     ,
+    { "gp"      ,Cmd_Spi_Get_Param  ,": Get param comand ej: gp 3 5" }                                                          ,
     { "pulse"   ,Cmd_Toogle_Pulses  ,": Toogle pulses con direccino ej.pulse 100 1" }                                         ,
     { "speed"   ,Cmd_Speed      ,": actual speed" }                                                                      ,
     { "acc"     ,Cmd_Acc            ,": Acceleration" }                                                                       ,
@@ -358,6 +358,12 @@ int Cmd_Pwd(struct tcp_pcb* tpcb, int argc, char *argv[])
    return 0;
 }/*}}}*/
 //-------------MOTOR--------------------------------------------------------------
+void Cmd2Params_Individual(Spi_Params *Params,uint8_t Cmd,uint8_t* Option)
+{
+   uint8_t n;
+   for(n=0;n<NUM_AXES;n++)
+         Params->Data[n][0]=Cmd|Option[n];
+}
 void Cmd2Params(Spi_Params *Params,uint8_t Cmd)
 {
    uint8_t n;
@@ -367,7 +373,7 @@ void Cmd2Params(Spi_Params *Params,uint8_t Cmd)
 void Value2Params(Spi_Params *Params,uint32_t *V)
 {
    uint8_t i,n;
-   uint8_t Len=Params->Len-1;
+   uint8_t Len=Params->Len;
    for(n=0;n<NUM_AXES;n++)
       for(i=0;i<Len;i++)
          Params->Data[n][Len-i]=V[n]>>(i*8);
@@ -375,56 +381,26 @@ void Value2Params(Spi_Params *Params,uint32_t *V)
 void Params2Value(Spi_Params *Params,uint32_t *Ans)
 {
    uint8_t i,n;
-   uint8_t Len=Params->Len-1;
+   uint8_t Len=Params->Len;
    for(n=0;n<NUM_AXES;n++) {
       Ans[n]=0;
       for(i=0;i<Len;i++)
          Ans[n]+=(Params->Data[n][Len-i])<<(i*8);
    }
 }
-
-
 int Cmd_Spi_Get_Param(struct tcp_pcb* tpcb, int argc, char *argv[])
 {/*{{{*/
    if(argc>1) {
       uint32_t Ans[NUM_AXES]={0};
-      Spi_Params Params;
-      switch (atoi(argv[1])) {
-            case 1:
-               Get_Reg1(atoi(argv[2]),&Params);
-               Params2Value(&Params,Ans);
-               break;
-            case 2:
-               Get_Reg2(atoi(argv[2]),&Params);
-               Params2Value(&Params,Ans);
-               break;
-            case 3:
-               Get_Reg3(atoi(argv[2]),&Params);
-               Params2Value(&Params,Ans);
-               break;
-            default:
-               break;
-      }
-      UART_ETHprintf(tpcb,"Reg: %d = %x %x\r\n",atoi(argv[2]),Ans[0],Ans[1]);
+      Get_Reg4Args(argv,Ans);
+      UART_ETHprintf(tpcb,"Reg: %d = %x %x\r\n",atoi(argv[1]),Ans[0],Ans[1]);
    }
    return 0;
 }/*}}}*/
 int Cmd_Spi_Set_Param(struct tcp_pcb* tpcb, int argc, char *argv[])
 {/*{{{*/
-   if(argc>1) 
-      switch (atoi(argv[1])) {
-            case 1:
-               Set_Reg1(atoi(argv[2]),atoi(argv[3]));
-               break;
-            case 2:
-               Set_Reg2(atoi(argv[2]),atoi(argv[3]));
-               break;
-            case 3:
-               Set_Reg3(atoi(argv[2]),atoi(argv[3]));
-               break;
-            default:
-               break;
-      }
+   if(argc>1)
+      Set_Reg4Args(argv);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Init(struct tcp_pcb* tpcb, int argc, char *argv[])
@@ -436,85 +412,83 @@ int Cmd_Spi_Init(struct tcp_pcb* tpcb, int argc, char *argv[])
 int Cmd_Spi_Run(struct tcp_pcb* tpcb, int argc, char *argv[])
 {/*{{{*/
    if(argc>1)
-      Send_App3 (Run_Dir_Cmd, atoi(argv[1]), atoi(argv[2]));
+      Send_App4Args_Option (Run_Dir_Cmd,argv,3);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Step       ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
    if(argc>1)
-      Send_App0 (Step_Clk_Cmd, atoi(argv[1]));
+      Send_App4Args( Step_Clk_Cmd, argv, 0);
    return 0;
 }/*}}}*/
-int Cmd_Spi_Move       ( struct tcp_pcb* tpcb, int argc, char *argv[] ) 
+int Cmd_Spi_Move       ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
    if(argc>1)
-      Send_App3 (Move_Cmd, atoi(argv[1]), atoi(argv[2]));
+      Send_App4Args_Option ( Move_Cmd,argv,3 );
    return 0;
 }/*}}}*/
-int Cmd_Spi_Goto       ( struct tcp_pcb* tpcb, int argc, char *argv[] ) 
+int Cmd_Spi_Goto       ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
    if(argc>1)
-      Send_App3 (Goto_Cmd, 0, atoi(argv[1]));
+      Send_App4Args (Goto_Cmd,argv,3);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Goto_Dir   ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
    if(argc>1)
-      Send_App3 (Goto_Dir_Cmd, atoi(argv[1]), atoi(argv[2]));
+      Send_App4Args_Option ( Goto_Dir_Cmd,argv,3 );
    return 0;
 }/*}}}*/
 int Cmd_Spi_Goto_Until ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
    if(argc>1)
-      Send_App3 (Go_Until_Cmd, atoi(argv[1]), atoi(argv[2]));
+      Send_App4Args_Option ( Go_Until_Cmd,argv ,3 );
    return 0;
 }/*}}}*/
 int Cmd_Spi_Home       ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_App0 (Go_Home_Cmd,0);
+   Send_App_Equal (Go_Home_Cmd,0,0,0);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Go_Mark    ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_App0 (Go_Mark_Cmd, 0);
+   Send_App_Equal (Go_Mark_Cmd, 0,0,0);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Reset_Pos  ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_App0 (Reset_Pos_Cmd, 0);
+   Send_App_Equal ( Reset_Pos_Cmd, 0,0,0 );
    return 0;
 }/*}}}*/
 int Cmd_Spi_Reset      ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_App0 (Reset_Device_Cmd, 0);
+   Send_App_Equal (Reset_Device_Cmd, 0,0,0);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Soft_Stop  ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_App0 (Soft_Stop_Cmd, 0);
+   Send_App_Equal (Soft_Stop_Cmd, 0,0,0);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Hard_Stop  ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_App0 (Hard_Stop_Cmd, 0);
+   Send_App_Equal (Hard_Stop_Cmd, 0,0,0);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Soft_Hiz   ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_App0 (Soft_Hi_Z_Cmd, 0);
+   Send_App_Equal (Soft_Hi_Z_Cmd, 0,0,0);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Hard_Hiz   ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_App0 (Hard_Hi_Z_Cmd, 0);
+   Send_App_Equal (Hard_Hi_Z_Cmd, 0,0,0);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Status     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Spi_Params Params;
    uint32_t Ans[NUM_AXES];
-   Get_App3(Get_Status_Cmd,&Params);
-   Params2Value(&Params,Ans);
+   Get_App(Get_Status_Cmd,Ans,3);
    UART_ETHprintf(tpcb,"status= 0x%06x 0x%06x \r\n",Ans[0],Ans[1]);
    return 0;
 }/*}}}*/
@@ -530,12 +504,10 @@ int Cmd_Toogle_Pulses(struct tcp_pcb* tpcb, int argc, char *argv[])
 }/*}}}*/
 int Cmd_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Spi_Params  Params;
    uint32_t    Ans[ NUM_AXES ];
    float       V  [ NUM_AXES ];
    uint8_t i;
-   Get_Reg3(Speed_Reg,&Params);
-   Params2Value(&Params,Ans);
+   Get_Reg(Speed_Reg,Ans,3);
    for(i=0;i<NUM_AXES;i++)
       V[i]=Ans[i]/67.108864;
    UART_ETHprintf(tpcb,"step/seg= %f %f\r\n",V[0],V[1]);
@@ -543,18 +515,16 @@ int Cmd_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 }/*}}}*/
 int Cmd_Max_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Spi_Params  Params         ;
    uint32_t    Ans[ NUM_AXES ];
    float       V  [ NUM_AXES ];
    uint8_t     i              ;
    if(argc>1) {
-      float V=(atol(argv[1]))*0.065535;
-      UART_ETHprintf ( DEBUG_MSG,"step/seg= %f\r\n",V )  ;
-      Set_Reg2       ( Max_Speed_Reg, (uint16_t       )V);
+      for(i=0;i<NUM_AXES;i++)
+         Ans[i]=(uint32_t)(atol(argv[1+i])*0.065535);
+      Set_Reg( Max_Speed_Reg,Ans,2);
    }
    else {
-      Get_Reg2     ( Max_Speed_Reg,&Params );
-      Params2Value ( &Params,Ans           );
+      Get_Reg     ( Max_Speed_Reg,Ans,2 );
       for(i=0;i<NUM_AXES;i++)
          V[i]=Ans[i]/0.065535;
       UART_ETHprintf(tpcb,"step/seg= %f %f\r\n",V[0],V[1]);
@@ -563,18 +533,16 @@ int Cmd_Max_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 }/*}}}*/
 int Cmd_Min_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Spi_Params  Params         ;
    uint32_t    Ans[ NUM_AXES ];
    float       V  [ NUM_AXES ];
    uint8_t     i              ;
    if(argc>1) {
-      float V=(atol(argv[1]))*4.194304;
-      UART_ETHprintf ( DEBUG_MSG,"step/seg= %f\r\n",V )  ;
-      Set_Reg2       ( Min_Speed_Reg, (uint16_t       )V);
+      for(i=0;i<NUM_AXES;i++)
+         Ans[i]=(uint32_t)(atol(argv[1+i])*4.194304);
+      Set_Reg ( Min_Speed_Reg,Ans,2);
    }
    else {
-      Get_Reg2     ( Min_Speed_Reg,&Params );
-      Params2Value ( &Params,Ans           );
+      Get_Reg ( Min_Speed_Reg,Ans,2 );
       for(i=0;i<NUM_AXES;i++)
          V[i]=Ans[i]/4.194304;
       UART_ETHprintf(tpcb,"step/seg= %f %f\r\n",V[0],V[1]);
@@ -583,18 +551,16 @@ int Cmd_Min_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 }/*}}}*/
 int Cmd_Acc     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Spi_Params  Params         ;
    uint32_t    Ans[ NUM_AXES ];
    float       V  [ NUM_AXES ];
    uint8_t     i              ;
    if(argc>1) {
-      float V=(atol(argv[1]))*0.068719476736;
-      UART_ETHprintf(DEBUG_MSG,"[step/seg]2= %f\r\n",V);
-      Set_Reg2 (Acc_Reg, (uint16_t)V);
+      for(i=0;i<NUM_AXES;i++)
+         Ans[i]=(uint32_t)(atol(argv[1+i])*0.068719476736);
+      Set_Reg ( Acc_Reg,Ans,2);
    }
    else {
-      Get_Reg2     ( Acc_Reg,&Params );
-      Params2Value ( &Params,Ans     );
+      Get_Reg ( Acc_Reg,Ans,2 );
       for(i=0;i<NUM_AXES;i++)
          V[i]=Ans[i]/0.068719476736;
       UART_ETHprintf(tpcb,"[step/seg]2= %f %f\r\n",V[0],V[1]);
@@ -603,18 +569,16 @@ int Cmd_Acc     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 }/*}}}*/
 int Cmd_Dec     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Spi_Params  Params         ;
    uint32_t    Ans[ NUM_AXES ];
    float       V  [ NUM_AXES ];
    uint8_t     i              ;
    if(argc>1) {
-      float V=(atol(argv[1]))*0.068719476736;
-      UART_ETHprintf(DEBUG_MSG,"[step/seg]2= %f\r\n",V);
-      Set_Reg2 (Dec_Reg, (uint16_t)V);
+      for(i=0;i<NUM_AXES;i++)
+         Ans[i]=(uint32_t)(atol(argv[1+i])*0.068719476736);
+      Set_Reg ( Dec_Reg,Ans,2);
    }
    else {
-      Get_Reg2     ( Dec_Reg,&Params );
-      Params2Value ( &Params,Ans     );
+      Get_Reg ( Dec_Reg,Ans,2 );
       for(i=0;i<NUM_AXES;i++)
          V[i]=Ans[i]/0.068719476736;
       UART_ETHprintf(tpcb,"[step/seg]2= %f %f\r\n",V[0],V[1]);

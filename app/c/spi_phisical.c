@@ -14,6 +14,7 @@
 #include "spi_phisical.h"
 #include "state_machine.h"
 #include "utils/lwiplib.h"
+#include <stdlib.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -83,7 +84,7 @@ void Send_Cmd2Spi(struct tcp_pcb* tpcb, Spi_Params* Params)
 {
    uint32_t Ans;
    uint8_t i,n;
-   for(i=0;i<Params->Len;i++) {
+   for(i=0;i<=Params->Len;i++) {
       Cs_Lo();
          for(n=0;n<NUM_AXES;n++) {
             MAP_SSIDataPut(SSI2_BASE, Params->Data[n][i]);
@@ -92,7 +93,7 @@ void Send_Cmd2Spi(struct tcp_pcb* tpcb, Spi_Params* Params)
             Params->Data[n][i]=(uint8_t)Ans;
             UART_ETHprintf(DEBUG_MSG,"Ans=0x%02x\r\n",Params->Data[n][i]);
             }
-      if(Wait_Busy==true && i==(Params->Len-1)) {
+      if(Wait_Busy==true && i==(Params->Len)) {
          while(Busy_Read()==0)
             ;
          Wait_Busy=false;
@@ -101,73 +102,108 @@ void Send_Cmd2Spi(struct tcp_pcb* tpcb, Spi_Params* Params)
    }
 }
 //--------------------------------------------------------------------------------
-void Get_Reg(uint8_t Reg, Spi_Params* Ans, uint8_t Len)
-{
-   Ans->Len=Len;
-   Cmd2Params   ( Ans       ,Reg|Get_Param_Cmd );
-   Send_Cmd2Spi ( DEBUG_MSG ,Ans               );
-}
-void Get_Reg1 ( uint8_t Reg, Spi_Params* Ans ) { Get_Reg(Reg,Ans,2); }
-void Get_Reg2 ( uint8_t Reg, Spi_Params* Ans ) { Get_Reg(Reg,Ans,3); }
-void Get_Reg3 ( uint8_t Reg, Spi_Params* Ans ) { Get_Reg(Reg,Ans,4); }
-//--------------------------------------------------------------------------------
-void Set_Reg(uint8_t Reg, uint32_t V,uint8_t Len)
+void Get_Data(uint8_t Reg, uint8_t Option,uint32_t* Ans, uint8_t Len)
 {
    Spi_Params Params;
+   Params.Len=Len;
+   Cmd2Params   ( &Params   ,Reg|Option );
+   Send_Cmd2Spi ( DEBUG_MSG ,&Params           );
+   Params2Value ( &Params   ,Ans               );
+}
+void Send_Data(uint8_t Cmd, uint8_t* Option,uint32_t *V,uint8_t Len)
+{
+   Spi_Params Params;
+   Params.Len=Len;
+   Cmd2Params_Individual ( &Params,Cmd,Option );
+   Value2Params          ( &Params,V          );
+   Send_Cmd2Spi          ( DEBUG_MSG,&Params  );
+}
+//--------------------------------------------------------------------------------
+void Get_Reg(uint8_t Reg, uint32_t* Ans, uint8_t Len)
+{
+   Get_Data(Reg,Get_Param_Cmd,Ans,Len);
+}
+void Set_Reg( uint8_t Reg, uint32_t* V , uint8_t Len)
+{
+   uint8_t  Option_Array[ NUM_AXES ];
+   uint8_t i;
+   for(i=0;i<NUM_AXES;i++)
+      Option_Array[i]=Set_Param_Cmd;
+   Send_Data(Reg,Option_Array,V,Len);
+}
+void Get_App(uint8_t Cmd, uint32_t* Ans, uint8_t Len)
+{
+   Get_Data(Cmd,0,Ans,Len);
+}
+//--------------------------------------------------------------------------------
+void Get_Reg4Args( char** argv, uint32_t* Ans)
+{
+   Get_Reg(atoi(argv[1]),Ans,atoi(argv[2]));
+}
+void Set_Reg4Args ( char** argv)
+{
+   uint32_t V[ NUM_AXES ];
+   uint8_t i;
+   for(i=0;i<NUM_AXES;i++)
+      V[ i ] = atoi ( argv[ 3+i ] );
+   Set_Reg(atoi(argv[1]),V,atoi(argv[2]));
+}
+//--------------------------------------------------------------------------------
+void Set_Reg_Equal(uint8_t Reg, uint32_t V,uint8_t Len)
+{
    uint32_t V_Array[NUM_AXES];
    uint8_t i;
    for(i=0;i<NUM_AXES;i++)
       V_Array[i]=V;
-   Params.Len=Len;
-   Cmd2Params   ( &Params,Reg|Set_Param_Cmd );
-   Value2Params ( &Params,V_Array           );
-   Send_Cmd2Spi ( DEBUG_MSG,&Params         );
+   Set_Reg(Reg,V_Array,Len);
 }
-void Set_Reg1 ( uint8_t Reg, uint8_t  V ) { Set_Reg(Reg,V,2);}
-void Set_Reg2 ( uint8_t Reg, uint16_t V ) { Set_Reg(Reg,V,3);}
-void Set_Reg3 ( uint8_t Reg, uint32_t V ) { Set_Reg(Reg,V,4);}
 //--------------------------------------------------------------------------------
-void Get_App(uint8_t Cmd, Spi_Params* Ans, uint8_t Len)
-{
-   Ans->Len=Len;
-   Cmd2Params   ( Ans,Cmd);
-   Send_Cmd2Spi ( DEBUG_MSG,Ans );
-}
-void Get_App3(uint8_t Cmd, Spi_Params* Ans) { Get_App(Cmd,Ans,4); }
-//--------------------------------------------------------------------------------
-void Send_App(uint8_t Cmd, uint8_t Option,uint32_t *V,uint8_t Len)
-{
-   Spi_Params Params;
-   Params.Len=Len;
-   Cmd2Params   ( &Params,Cmd|Option );
-   Value2Params ( &Params,V          );
-   Send_Cmd2Spi ( DEBUG_MSG,&Params  );
-}
 void Send_App_Equal(uint8_t Cmd, uint8_t Option,uint32_t V,uint8_t Len)
 {
-   uint32_t V_Array[NUM_AXES];
+   uint32_t V_Array     [ NUM_AXES ];
+   uint8_t  Option_Array[ NUM_AXES ];
    uint8_t i;
-   for(i=0;i<NUM_AXES;i++)
+   for(i=0;i<NUM_AXES;i++) {
+      Option_Array[i]=Option;
       V_Array[i]=V;
-   Send_App(Cmd,Option,V_Array,Len);
+   }
+   Send_Data(Cmd,Option_Array,V_Array,Len);
 }
-void Send_App0 ( uint8_t Cmd, uint8_t Option             ) { Send_App_Equal(Cmd,Option,0,1);}
-void Send_App1 ( uint8_t Cmd, uint8_t Option, uint8_t  V ) { Send_App_Equal(Cmd,Option,V,2);}
-void Send_App2 ( uint8_t Cmd, uint8_t Option, uint16_t V ) { Send_App_Equal(Cmd,Option,V,3);}
-void Send_App3 ( uint8_t Cmd, uint8_t Option, uint32_t V ) { Send_App_Equal(Cmd,Option,V,4);}
+void Send_App4Args_Option ( uint8_t Cmd, char *argv[] , uint8_t Len)
+{
+   uint8_t  Options[ NUM_AXES ];
+   uint32_t V      [ NUM_AXES ];
+   uint8_t i;
+   for(i=0;i<NUM_AXES;i++) {
+      Options[ i ] = atoi ( argv[ 1+2*i ]);
+      V      [ i ] = atoi ( argv[ 2+2*i ]);
+   }
+   Send_Data(Cmd,Options,V,Len);
+}
+void Send_App4Args ( uint8_t Cmd, char *argv[], uint8_t Len)
+{
+   uint8_t  Options[ NUM_AXES ];
+   uint32_t V      [ NUM_AXES ];
+   uint8_t i;
+   for(i=0;i<NUM_AXES;i++) {
+      Options[ i ] = 0;
+      V      [ i ] = atoi ( argv[ 1+i ]);
+   }
+   Send_Data(Cmd,Options,V,Len);
+}
 //--------------------------------------------------------------------------------
 
 
 
 void Init_Powerstep(struct tcp_pcb* tpcb)
 {
-   Set_Reg1( 9,150);
-   Set_Reg1(10,150);
-   Set_Reg1(11,150);
-   Set_Reg1(12,150);
-   Set_Reg2(Config_Reg,0x2C08);
-   Set_Reg2(Dec_Reg,0x000A);
-   Set_Reg2(Acc_Reg,0x000A);
+   Set_Reg_Equal ( 9          ,150    ,1 );
+   Set_Reg_Equal ( 10         ,150    ,1 );
+   Set_Reg_Equal ( 11         ,150    ,1 );
+   Set_Reg_Equal ( 12         ,150    ,1 );
+   Set_Reg_Equal ( Config_Reg ,0x2C08 ,2 );
+   Set_Reg_Equal ( Dec_Reg    ,0x000A ,2 );
+   Set_Reg_Equal ( Acc_Reg    ,0x000A ,2 );
 }
 void Toogle_Pulses(uint32_t Pulses)
 {
