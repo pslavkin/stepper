@@ -19,9 +19,10 @@ extern int  Cmd_Exit              ( struct tcp_pcb* tpcb, int argc, char *argv[]
 extern int Cmd_Back2Login     ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Back2Main      ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 
-extern int Cmd_Main2Ip        ( struct tcp_pcb* tpcb, int argc, char *argv[] );
-extern int Cmd_Main2Motor     ( struct tcp_pcb* tpcb, int argc, char *argv[] );
-extern int Cmd_Main2System    ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Main2Ip     ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Main2Motor  ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Main2System ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Main2Gcode  ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 
 extern int Cmd_Mac            ( struct tcp_pcb* tpcb ,int argc ,char *argv[] );
 extern int Cmd_Ip             ( struct tcp_pcb* tpcb ,int argc ,char *argv[] );
@@ -40,6 +41,7 @@ extern int Cmd_Id        ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Show_Id   ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 
 extern int Cmd_Spi_Init       ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Spi_Abs_Pos(struct tcp_pcb* tpcb, int argc, char *argv[]);
 extern int Cmd_Spi_Run        ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Spi_Step       ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Spi_Move       ( struct tcp_pcb* tpcb, int argc, char *argv[] );
@@ -67,10 +69,6 @@ extern int Cmd_Nowait    ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Spi_Set_Param ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Spi_Get_Param ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Toogle_Pulses ( struct tcp_pcb* tpcb, int argc, char *argv[] );
-
-extern int Cmd_Main2Esp(struct tcp_pcb* tpcb, int argc, char *argv[]);
-extern int Cmd_Pipe_Esp(struct tcp_pcb* tpcb, int argc, char *argv[]);
-extern int Cmd_Esp_Bind(struct tcp_pcb* tpcb, int argc, char *argv[]);
 
 void User_Commands_Task       ( void* nil                                    );
 extern void DisplayIPAddress  ( struct tcp_pcb* tpcb,uint32_t ui32Addr       );

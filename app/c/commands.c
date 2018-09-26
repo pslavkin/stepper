@@ -23,6 +23,8 @@
 #include "schedule.h"
 #include "spi_phisical.h"
 #include "gcode.h"
+#include "moves.h"
+#include "powerstep01.h"
 #include "third_party/lwip-1.4.1/src/include/ipv4/lwip/ip_addr.h"
 
 #include "FreeRTOS.h"
@@ -45,7 +47,7 @@ tCmdLineEntry Main_Cmd_Table[] =
     { "net"    ,Cmd_Main2Ip     ,": network options" } ,
     { "motor"  ,Cmd_Main2Motor  ,": motor driver" }    ,
     { "system" ,Cmd_Main2System ,": system options" }  ,
-    { "esp"    ,Cmd_Main2Esp    ,": esp options" }     ,
+    { "gcode"  ,Cmd_Main2Gcode  ,": Gcode parser" }     ,
     { "?"      ,Cmd_Help        ,": help" }            ,
     { "<"      ,Cmd_Back2Login  ,": back" }            ,
     { 0        ,0               ,0 }
@@ -66,6 +68,7 @@ tCmdLineEntry Ip_Cmd_Table[] =
 tCmdLineEntry Motor_Cmd_Table[] =
 {
     { "init"    ,Cmd_Spi_Init       ,": init regs" }                                                                          ,
+    { "pos"     ,Cmd_Spi_Abs_Pos    ,": actual pos" }                                      ,
     { "run"     ,Cmd_Spi_Run        ,": Sets the target speed and the motor direction" }                                      ,
     { "step"    ,Cmd_Spi_Step       ,": Puts the device in Step-clock" }                                                      ,
     { "move"    ,Cmd_Spi_Move       ,": Makes N_STEP (micro)steps in DIR direction (Not performable when motor is running)" } ,
@@ -84,7 +87,7 @@ tCmdLineEntry Motor_Cmd_Table[] =
     { "sp"      ,Cmd_Spi_Set_Param  ,": Set param comand ej: sp 2 5 1234" }                                                     ,
     { "gp"      ,Cmd_Spi_Get_Param  ,": Get param comand ej: gp 3 5" }                                                          ,
     { "pulse"   ,Cmd_Toogle_Pulses  ,": Toogle pulses con direccino ej.pulse 100 1" }                                         ,
-    { "speed"   ,Cmd_Speed      ,": actual speed" }                                                                      ,
+    { "speed"   ,Cmd_Speed          ,": actual speed" }                                                                      ,
     { "acc"     ,Cmd_Acc            ,": Acceleration" }                                                                       ,
     { "dec"     ,Cmd_Dec            ,": Decceleration" }                                                                      ,
     { "maxv"    ,Cmd_Max_Speed      ,": Maximum speed" }                                                                      ,
@@ -93,7 +96,15 @@ tCmdLineEntry Motor_Cmd_Table[] =
     { "nowait"  ,Cmd_Nowait         ,": no wait" }                                                                            ,
     { "?"       ,Cmd_Help           ,": help" }                                                                               ,
     { "<"       ,Cmd_Back2Main      ,": back" }                                                                               ,
-    { 0         ,0                  ,0 }
+    { "G1" ,Cmd_Gcode_G1          ,": linear move XxYyZz" } ,
+    { "p"  ,Cmd_Gcode_Print_Motor ,": print structure" }    ,
+    { "?"  ,Cmd_Help              ,": help" }               ,
+    { "<"  ,Cmd_Back2Main         ,": back" }               ,
+    { 0    ,0                     ,0 }
+};
+tCmdLineEntry Gcode_Cmd_Table[] =
+{
+    { 0    ,0                     ,0 }
 };
 tCmdLineEntry System_Cmd_Table[] =
 {
@@ -106,14 +117,6 @@ tCmdLineEntry System_Cmd_Table[] =
     { "?"      ,Cmd_Help      ,": help" }                      ,
     { "<"      ,Cmd_Back2Main ,": back" }                      ,
     { 0        ,0             ,0 }
-};
-tCmdLineEntry Esp_Cmd_Table[] =
-{
-    { "r" ,Cmd_Pipe_Esp  ,": retransmit to esp" } ,
-    { "b" ,Cmd_Esp_Bind  ,": esp bind port" } ,
-    { "?" ,Cmd_Help      ,": help" }              ,
-    { "<" ,Cmd_Back2Main ,": back" }              ,
-    { 0   ,0             ,0 }
 };
 //----------------------WELCOME----------------------------------------------------------
 int Cmd_Welcome(struct tcp_pcb* tpcb, int argc, char *argv[])
@@ -167,9 +170,9 @@ int Cmd_Main2System(struct tcp_pcb* tpcb, int argc, char *argv[])
    g_psCmdTable=System_Cmd_Table;
    return 0;
 }/*}}}*/
-int Cmd_Main2Esp(struct tcp_pcb* tpcb, int argc, char *argv[])
+int Cmd_Main2Gcode(struct tcp_pcb* tpcb, int argc, char *argv[])
 {/*{{{*/
-   g_psCmdTable=Esp_Cmd_Table;
+   g_psCmdTable=Gcode_Cmd_Table;
    return 0;
 }/*}}}*/
 int Cmd_Back2Main(struct tcp_pcb* tpcb, int argc, char *argv[])
@@ -411,8 +414,23 @@ int Cmd_Spi_Init(struct tcp_pcb* tpcb, int argc, char *argv[])
 }/*}}}*/
 int Cmd_Spi_Run(struct tcp_pcb* tpcb, int argc, char *argv[])
 {/*{{{*/
-   if(argc>1)
-      Send_App4Args_Option (Run_Dir_Cmd,argv,3);
+   if(argc>1) {
+      float    V      [ NUM_AXES ];
+      uint8_t  Options[ NUM_AXES ];
+      uint8_t     i;
+      for(i=0;i<NUM_AXES;i++) {
+         Options[ i] = atoi ( argv[1+2*i ] );
+         V      [ i] = atol ( argv[2+2*i ] );
+      }
+      Run(Options,V);
+   }
+   return 0;
+}/*}}}*/
+int Cmd_Spi_Abs_Pos(struct tcp_pcb* tpcb, int argc, char *argv[])
+{/*{{{*/
+   int32_t  Pos[ NUM_AXES ];
+   Abs_Pos(Pos);
+   UART_ETHprintf(tpcb,"Pos= %d %d\r\n",Pos[0],Pos[1]);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Step       ( struct tcp_pcb* tpcb, int argc, char *argv[] )
@@ -513,38 +531,33 @@ int Cmd_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
    UART_ETHprintf(tpcb,"step/seg= %f %f\r\n",V[0],V[1]);
    return 0;
 }/*}}}*/
+
 int Cmd_Max_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   uint32_t    Ans[ NUM_AXES ];
    float       V  [ NUM_AXES ];
    uint8_t     i              ;
    if(argc>1) {
       for(i=0;i<NUM_AXES;i++)
-         Ans[i]=(uint32_t)(atol(argv[1+i])*0.065535);
-      Set_Reg( Max_Speed_Reg,Ans,2);
+         V[i]=atol(argv[1+i]);
+      Set_Max_Speed(V);
    }
    else {
-      Get_Reg     ( Max_Speed_Reg,Ans,2 );
-      for(i=0;i<NUM_AXES;i++)
-         V[i]=Ans[i]/0.065535;
+      Get_Max_Speed(V);
       UART_ETHprintf(tpcb,"step/seg= %f %f\r\n",V[0],V[1]);
    }
    return 0;
 }/*}}}*/
 int Cmd_Min_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   uint32_t    Ans[ NUM_AXES ];
    float       V  [ NUM_AXES ];
    uint8_t     i              ;
    if(argc>1) {
       for(i=0;i<NUM_AXES;i++)
-         Ans[i]=(uint32_t)(atol(argv[1+i])*4.194304);
-      Set_Reg ( Min_Speed_Reg,Ans,2);
+         V[i]=atol(argv[1+i]);
+      Set_Min_Speed(V);
    }
    else {
-      Get_Reg ( Min_Speed_Reg,Ans,2 );
-      for(i=0;i<NUM_AXES;i++)
-         V[i]=Ans[i]/4.194304;
+      Get_Min_Speed(V);
       UART_ETHprintf(tpcb,"step/seg= %f %f\r\n",V[0],V[1]);
    }
    return 0;
@@ -593,23 +606,6 @@ int Cmd_Wait     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 int Cmd_Nowait     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
    Unset_Wait_Busy();
-   return 0;
-}/*}}}*/
-//---------------ESP-----------------------------------------------------------
-int Cmd_Pipe_Esp(struct tcp_pcb* tpcb, int argc, char *argv[])
-{/*{{{*/
-   if(argc>1) {
-      UART_ETHprintf(CONFIG_ESP_MSG,"%s\r\n",argv[1]);
-   }
-   return 0;
-}/*}}}*/
-int Cmd_Esp_Bind(struct tcp_pcb* tpcb, int argc, char *argv[])
-{/*{{{*/
-   if(argc>1) {
-      UART_ETHprintf(CONFIG_ESP_MSG,"AT+CIPMUX=1\r\n");
-      vTaskDelay(pdMS_TO_TICKS(1000));
-      UART_ETHprintf(CONFIG_ESP_MSG,"AT+CIPSERVER=1,%d\r\n",atoi(argv[1]));
-   }
    return 0;
 }/*}}}*/
 //-----------------CMD PROCESS--------------------------------------------------

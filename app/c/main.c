@@ -23,7 +23,6 @@
 #include "spi_phisical.h"
 #include "usr_flash.h"
 #include "gcode.h"
-#include "esp8266.h"
 
 
 int main(void)
@@ -39,7 +38,6 @@ int main(void)
             IPADDR_USE_STATIC);
    Init_Wdog   ( );
    Init_Uart0  ( );
-   Init_Uart7  ( );
    Init_Events ( );
    Init_Schedule();
    xTaskCreate ( State_Machine      ,"sm"            ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
@@ -48,7 +46,6 @@ int main(void)
    xTaskCreate ( Led_Eth_Data_Task  ,"led eth data"  ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
    xTaskCreate ( User_Commands_Task ,"user commands" ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
    xTaskCreate ( Gcode_Parser       ,"gcode"         ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
-   xTaskCreate ( Esp_Task           ,"esp"           ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
 //    xTaskCreate(Busy_Read_Task,"busy read",configMINIMAL_STACK_SIZE ,NULL ,1 ,NULL );
    Init_Telnet         ( );
    Init_Spi_Phisical   ( );

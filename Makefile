@@ -69,17 +69,18 @@ ${COMPILER}:
 #
 ${COMPILER}/out.axf: ${COMPILER}/usr_flash.o
 ${COMPILER}/out.axf: ${COMPILER}/main.o
+${COMPILER}/out.axf: ${COMPILER}/powerstep01.o
 ${COMPILER}/out.axf: ${COMPILER}/spi_phisical.o
 ${COMPILER}/out.axf: ${COMPILER}/events.o
 ${COMPILER}/out.axf: ${COMPILER}/schedule.o
 ${COMPILER}/out.axf: ${COMPILER}/leds_session.o
 ${COMPILER}/out.axf: ${COMPILER}/state_machine.o
 ${COMPILER}/out.axf: ${COMPILER}/gcode.o
+${COMPILER}/out.axf: ${COMPILER}/moves.o
 ${COMPILER}/out.axf: ${COMPILER}/telnet.o
 ${COMPILER}/out.axf: ${COMPILER}/clk.o
 ${COMPILER}/out.axf: ${COMPILER}/wdog.o
 ${COMPILER}/out.axf: ${COMPILER}/commands.o
-${COMPILER}/out.axf: ${COMPILER}/esp8266.o
 ${COMPILER}/out.axf: ${COMPILER}/lwiplib.o
 ${COMPILER}/out.axf: ${COMPILER}/startup_${COMPILER}.o
 ${COMPILER}/out.axf: ${COMPILER}/cmdline.o

@@ -40,7 +40,6 @@
 #include "utils/uartstdio.h"
 #include "utils/ustdlib.h"
 #include "opt.h"
-#include "esp8266.h"
 
 #include "string.h"
 #include "stdio.h"
@@ -941,11 +940,8 @@ void itoaa(unsigned long num, char *arr, unsigned char base)
 //
 
 static char Buff[UART_TX_BUFFER_SIZE];
-static char Header[20]="AT+CIPSEND=0,10\r\n";
 
-   
-   void
-UART_ETHprintf(struct tcp_pcb* tpcb,const char *pcString, ...)
+void UART_ETHprintf(struct tcp_pcb* tpcb,const char *pcString, ...)
 {
 #ifndef DEBUG_UART
    if(tpcb==DEBUG_MSG) return;
@@ -961,22 +957,7 @@ UART_ETHprintf(struct tcp_pcb* tpcb,const char *pcString, ...)
         case DEBUG_MSG_CODE:
             UARTwrite(Buff,len<UART_TX_BUFFER_SIZE?len:UART_TX_BUFFER_SIZE);
             break;
-        case ESP_MSG_CODE: {
-            int i;
-            itoaa(len,Header+13,10);
-            for(i=0;Header[i]!='\0';i++)
-                 Esp_UARTwrite(Header+i,1);
-            Esp_UARTwrite("\r\n",2);
-            vTaskDelay(2);
-            Esp_UARTwrite(Buff,len<UART_TX_BUFFER_SIZE?len:UART_TX_BUFFER_SIZE);
-            vTaskDelay(2);
-            }
-            break;
-        case CONFIG_ESP_MSG_CODE: {
-               Esp_UARTwrite(Buff,len<UART_TX_BUFFER_SIZE?len:UART_TX_BUFFER_SIZE);
-            }
-            break;
-        default: 
+        default:
            tcp_write(tpcb,Buff,len<UART_TX_BUFFER_SIZE?len:UART_TX_BUFFER_SIZE,
                       TCP_WRITE_FLAG_COPY);//|TCP_WRITE_FLAG_MORE);
            break;

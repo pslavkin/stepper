@@ -32,13 +32,9 @@
 
 #define DEBUG_MSG_CODE      0
 #define UART_MSG_CODE       1
-#define ESP_MSG_CODE        2
-#define CONFIG_ESP_MSG_CODE 3
 
 #define DEBUG_MSG      ( (struct tcp_pcb*)(NULL))
 #define UART_MSG       ( (struct tcp_pcb*)(1))
-#define ESP_MSG        ( (struct tcp_pcb*)(2))
-#define CONFIG_ESP_MSG ( (struct tcp_pcb*)(3))
 //*****************************************************************************
 //
 // If building with a C++ compiler, make all of the definitions in this header

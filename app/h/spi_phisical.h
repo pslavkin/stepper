@@ -26,6 +26,7 @@ enum Step01_App_Cmd {
    Get_Status_Cmd   = 0xD0    //0b_1101_0000,
 };
 enum Step01_Registers{
+   Abs_Pos_Reg   = 0x01,
    Speed_Reg     = 0x04,
    Acc_Reg       = 0x05,
    Dec_Reg       = 0x06,
@@ -46,16 +47,17 @@ extern void    Rst_Hi            ( void );
 extern void    Rst_Lo            ( void );
 extern bool    Busy_Read         ( void );
 // ------------------------------------------------------
-extern void       Send_Data2Spi ( void                                               );
-void Get_Reg                    ( uint8_t Reg, uint32_t* Ans, uint8_t Len            );
-void Set_Reg                    ( uint8_t Reg, uint32_t* V , uint8_t Len             );
-void Get_App                    ( uint8_t Cmd, uint32_t* Ans, uint8_t Len            );
-void Get_Reg4Args               ( char** argv, uint32_t* Ans                         );
-void Set_Reg4Args               ( char** argv                                        );
-void Set_Reg_Equal              ( uint8_t Reg, uint32_t V,uint8_t Len                );
-void Send_App_Equal             ( uint8_t Cmd, uint8_t Option,uint32_t V,uint8_t Len );
-void Send_App4Args_Option       ( uint8_t Cmd, char *argv[] ,uint8_t Len             );
-void Send_App4Args              ( uint8_t Cmd, char *argv[] ,uint8_t Len             );
+extern void       Send_Data2Spi ( void                                                 );
+void Get_Reg                    ( uint8_t Reg, uint32_t* Ans, uint8_t Len              );
+void Set_Reg                    ( uint8_t Reg, uint32_t* V , uint8_t Len               );
+void Get_App                    ( uint8_t Cmd, uint32_t* Ans, uint8_t Len              );
+void Get_Reg4Args               ( char** argv, uint32_t* Ans                           );
+void Set_Reg4Args               ( char** argv                                          );
+void Set_Reg_Equal              ( uint8_t Reg, uint32_t V,uint8_t Len                  );
+void Send_Data                  ( uint8_t Cmd, uint8_t* Option,uint32_t *V,uint8_t Len );
+void Send_App_Equal             ( uint8_t Cmd, uint8_t Option,uint32_t V,uint8_t Len   );
+void Send_App4Args_Option       ( uint8_t Cmd, char *argv[] ,uint8_t Len               );
+void Send_App4Args              ( uint8_t Cmd, char *argv[] ,uint8_t Len               );
 // ------------------------------------------------------
 extern void       Send_Cmd2Spi    ( struct tcp_pcb* tpcb ,Spi_Params* Params            );
 extern void       Toogle_Pulses   ( uint32_t Pulses                                     );

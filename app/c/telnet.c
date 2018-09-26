@@ -71,7 +71,7 @@ err_t Rcv_Fn (void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
 
 void Telnet_Close ( struct tcp_pcb *tpcb)
 {
-   if(tpcb!=DEBUG_MSG && tpcb!=UART_MSG && tpcb!=ESP_MSG) {
+   if(tpcb!=DEBUG_MSG && tpcb!=UART_MSG ) {
       tcp_close(tpcb);
    }
 }
