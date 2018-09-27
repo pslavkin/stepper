@@ -569,8 +569,8 @@ int Cmd_Acc     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
    uint8_t     i              ;
    if(argc>1) {
       for(i=0;i<NUM_AXES;i++)
-         Ans[i]=(uint32_t)(atol(argv[1+i])*0.068719476736);
-      Set_Reg ( Acc_Reg,Ans,2);
+         V[i]=atol(argv[1+i]);
+      Set_Acc(V);
    }
    else {
       Get_Reg ( Acc_Reg,Ans,2 );
@@ -587,8 +587,8 @@ int Cmd_Dec     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
    uint8_t     i              ;
    if(argc>1) {
       for(i=0;i<NUM_AXES;i++)
-         Ans[i]=(uint32_t)(atol(argv[1+i])*0.068719476736);
-      Set_Reg ( Dec_Reg,Ans,2);
+         V[i]=atol(argv[1+i]);
+      Set_Dec(V);
    }
    else {
       Get_Reg ( Dec_Reg,Ans,2 );

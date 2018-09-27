@@ -9,6 +9,22 @@
 #include "spi_phisical.h"
 
 //-------------------------------------------------------------
+void Set_Acc(float* V)
+{
+   uint32_t Ans[ NUM_AXES ];
+   uint8_t  i              ;
+   for(i=0;i<NUM_AXES;i++)
+      Ans[i]=(uint32_t)(V[i]*0.068719476736);
+   Set_Reg (Acc_Reg,Ans,2);
+}
+void Set_Dec(float* V)
+{
+   uint32_t Ans[ NUM_AXES ];
+   uint8_t  i              ;
+   for(i=0;i<NUM_AXES;i++)
+      Ans[i]=(uint32_t)(V[i]*0.068719476736);
+   Set_Reg (Dec_Reg,Ans,2);
+}
 void Set_Max_Speed(float* V)
 {
    uint32_t    Ans[ NUM_AXES ];
