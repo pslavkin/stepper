@@ -33,6 +33,7 @@ enum Step01_Registers{
    Max_Speed_Reg = 0x07,
    Min_Speed_Reg = 0x08,
    Config_Reg    = 0x1A,
+   Step_Mode_Reg = 0x16,
 };
 
 typedef struct  {

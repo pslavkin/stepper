@@ -36,7 +36,7 @@ int main(void)
             Usr_Flash_Params.Mask_Addr,
             Usr_Flash_Params.Gateway_Addr,
             IPADDR_USE_STATIC);
-   Init_Wdog   ( );
+//   Init_Wdog   ( );
    Init_Uart0  ( );
    Init_Events ( );
    Init_Schedule();
@@ -44,7 +44,7 @@ int main(void)
    xTaskCreate ( Schedule           ,"schedule"      ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
    xTaskCreate ( Led_Link_Task      ,"led link"      ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
    xTaskCreate ( Led_Eth_Data_Task  ,"led eth data"  ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
-   xTaskCreate ( User_Commands_Task ,"user commands" ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
+   xTaskCreate ( User_Commands_Task ,"user commands" ,configMINIMAL_STACK_SIZE*2 ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
    xTaskCreate ( Gcode_Parser       ,"gcode"         ,configMINIMAL_STACK_SIZE ,NULL ,tskIDLE_PRIORITY+1 ,NULL );
 //    xTaskCreate(Busy_Read_Task,"busy read",configMINIMAL_STACK_SIZE ,NULL ,1 ,NULL );
    Init_Telnet         ( );

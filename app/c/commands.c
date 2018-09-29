@@ -83,7 +83,7 @@ tCmdLineEntry Motor_Cmd_Table[] =
     { "hstop"   ,Cmd_Spi_Hard_Stop  ,": Stops motor immediately" }                                                            ,
     { "hiz"     ,Cmd_Spi_Soft_Hiz   ,": Puts the bridges in high impedance status after a deceleration phase" }               ,
     { "hhiz"    ,Cmd_Spi_Hard_Hiz   ,": Puts the bridges in high impedance status immediately" }                              ,
-    { "stat"    ,Cmd_Spi_Status     ,": Returns the status register value" }                                                  ,
+    { "s"    ,Cmd_Spi_Status     ,": Returns the status register value" }                                                  ,
     { "sp"      ,Cmd_Spi_Set_Param  ,": Set param comand ej: sp 2 5 1234" }                                                     ,
     { "gp"      ,Cmd_Spi_Get_Param  ,": Get param comand ej: gp 3 5" }                                                          ,
     { "pulse"   ,Cmd_Toogle_Pulses  ,": Toogle pulses con direccino ej.pulse 100 1" }                                         ,
@@ -396,7 +396,7 @@ int Cmd_Spi_Get_Param(struct tcp_pcb* tpcb, int argc, char *argv[])
    if(argc>1) {
       uint32_t Ans[NUM_AXES]={0};
       Get_Reg4Args(argv,Ans);
-      UART_ETHprintf(tpcb,"Reg: %d = %x %x\r\n",atoi(argv[1]),Ans[0],Ans[1]);
+      UART_ETHprintf(tpcb,"Reg: %d = 0x%x 0x%x\r\n",atoi(argv[1]),Ans[0],Ans[1]);
    }
    return 0;
 }/*}}}*/
@@ -419,8 +419,8 @@ int Cmd_Spi_Run(struct tcp_pcb* tpcb, int argc, char *argv[])
       uint8_t  Options[ NUM_AXES ];
       uint8_t     i;
       for(i=0;i<NUM_AXES;i++) {
-         Options[ i] = atoi ( argv[1+2*i ] );
-         V      [ i] = atol ( argv[2+2*i ] );
+         Options[ i] = atoi    ( argv[1+2*i ]      );
+         V      [ i] = ustrtof ( argv[2+2*i ],NULL );
       }
       Run(Options,V);
    }
@@ -485,12 +485,12 @@ int Cmd_Spi_Reset      ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 }/*}}}*/
 int Cmd_Spi_Soft_Stop  ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_App_Equal (Soft_Stop_Cmd, 0,0,0);
+   Stop();
    return 0;
 }/*}}}*/
 int Cmd_Spi_Hard_Stop  ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Send_App_Equal (Hard_Stop_Cmd, 0,0,0);
+   Hard_Stop();
    return 0;
 }/*}}}*/
 int Cmd_Spi_Soft_Hiz   ( struct tcp_pcb* tpcb, int argc, char *argv[] )
@@ -506,8 +506,8 @@ int Cmd_Spi_Hard_Hiz   ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 int Cmd_Spi_Status     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
    uint32_t Ans[NUM_AXES];
-   Get_App(Get_Status_Cmd,Ans,3);
-   UART_ETHprintf(tpcb,"status= 0x%06x 0x%06x \r\n",Ans[0],Ans[1]);
+   Get_App(Get_Status_Cmd,Ans,2);
+   UART_ETHprintf(tpcb,"status= 0x%04x 0x%04x \r\n",Ans[0],Ans[1]);
    return 0;
 }/*}}}*/
 int Cmd_Toogle_Pulses(struct tcp_pcb* tpcb, int argc, char *argv[])
@@ -522,12 +522,13 @@ int Cmd_Toogle_Pulses(struct tcp_pcb* tpcb, int argc, char *argv[])
 }/*}}}*/
 int Cmd_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   uint32_t    Ans[ NUM_AXES ];
-   float       V  [ NUM_AXES ];
+   float V[ NUM_AXES ];
+   uint32_t Ans[ NUM_AXES ];
    uint8_t i;
    Get_Reg(Speed_Reg,Ans,3);
    for(i=0;i<NUM_AXES;i++)
       V[i]=Ans[i]/67.108864;
+   //Speed(V);
    UART_ETHprintf(tpcb,"step/seg= %f %f\r\n",V[0],V[1]);
    return 0;
 }/*}}}*/
@@ -538,7 +539,7 @@ int Cmd_Max_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
    uint8_t     i              ;
    if(argc>1) {
       for(i=0;i<NUM_AXES;i++)
-         V[i]=atol(argv[1+i]);
+         V[i]=ustrtof(argv[1+i],NULL);
       Set_Max_Speed(V);
    }
    else {
@@ -553,7 +554,7 @@ int Cmd_Min_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
    uint8_t     i              ;
    if(argc>1) {
       for(i=0;i<NUM_AXES;i++)
-         V[i]=atol(argv[1+i]);
+         V[i]=ustrtof(argv[1+i],NULL);
       Set_Min_Speed(V);
    }
    else {
@@ -569,7 +570,7 @@ int Cmd_Acc     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
    uint8_t     i              ;
    if(argc>1) {
       for(i=0;i<NUM_AXES;i++)
-         V[i]=atol(argv[1+i]);
+         V[i]=ustrtof(argv[1+i],NULL);
       Set_Acc(V);
    }
    else {
@@ -587,7 +588,7 @@ int Cmd_Dec     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
    uint8_t     i              ;
    if(argc>1) {
       for(i=0;i<NUM_AXES;i++)
-         V[i]=atol(argv[1+i]);
+         V[i]=ustrtof(argv[1+i],NULL);
       Set_Dec(V);
    }
    else {

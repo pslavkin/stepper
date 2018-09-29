@@ -70,7 +70,6 @@ CFLAGS=-mthumb             \
        -pedantic           \
        -DPART_${PART}      \
        -c
-
 #
 # The command for calling the library archiver.
 #

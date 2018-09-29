@@ -83,16 +83,17 @@ void  Init_Spi_Phisical (void)
 void Send_Cmd2Spi(struct tcp_pcb* tpcb, Spi_Params* Params)
 {
    uint32_t Ans;
-   uint8_t i,n;
+   uint8_t i;
+   int8_t n;
    for(i=0;i<=Params->Len;i++) {
       Cs_Lo();
-         for(n=0;n<NUM_AXES;n++) {
+         for(n=NUM_AXES-1;n>=0;n--) {
             MAP_SSIDataPut(SSI2_BASE, Params->Data[n][i]);
-            UART_ETHprintf(DEBUG_MSG,"Command=0x%02x -",Params->Data[n][i]);
+            UART_ETHprintf(DEBUG_MSG, "Command=0x%02x -",Params->Data[n][i]);
             MAP_SSIDataGet(SSI2_BASE,&Ans);
             Params->Data[n][i]=(uint8_t)Ans;
             UART_ETHprintf(DEBUG_MSG,"Ans=0x%02x\r\n",Params->Data[n][i]);
-            }
+         }
       if(Wait_Busy==true && i==(Params->Len)) {
          while(Busy_Read()==0)
             ;
@@ -192,18 +193,20 @@ void Send_App4Args ( uint8_t Cmd, char *argv[], uint8_t Len)
    Send_Data(Cmd,Options,V,Len);
 }
 //--------------------------------------------------------------------------------
-
-
-
 void Init_Powerstep(struct tcp_pcb* tpcb)
 {
-   Set_Reg_Equal ( 9          ,150    ,1 );
-   Set_Reg_Equal ( 10         ,150    ,1 );
-   Set_Reg_Equal ( 11         ,150    ,1 );
-   Set_Reg_Equal ( 12         ,150    ,1 );
-   Set_Reg_Equal ( Config_Reg ,0x2C08 ,2 );
-   Set_Reg_Equal ( Dec_Reg    ,0x000A ,2 );
-   Set_Reg_Equal ( Acc_Reg    ,0x000A ,2 );
+   uint32_t    V[ NUM_AXES ];
+   Set_Reg_Equal ( 9          , 60    ,1 );
+   Set_Reg_Equal ( 10         , 50    ,1 );
+   Set_Reg_Equal ( 11         , 50    ,1 );
+   Set_Reg_Equal ( 12         , 50    ,1 );
+
+   V[1]=0x2C0D;V[0]=0x2C0B; // uno genera el clk de salida de 16m desde su
+                            // interno y ekl otro recibe y regenera inviertido
+   Set_Reg       ( Config_Reg    ,V      ,2 );
+   Set_Reg_Equal ( Dec_Reg       ,0x000A ,2 );
+   Set_Reg_Equal ( Acc_Reg       ,0x000A ,2 );
+   Set_Reg_Equal ( Step_Mode_Reg ,0x00   ,1 );
 }
 void Toogle_Pulses(uint32_t Pulses)
 {

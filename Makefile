@@ -1,4 +1,3 @@
-
 # Defines the part type that this project uses.
 #
 
