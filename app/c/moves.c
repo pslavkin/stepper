@@ -8,6 +8,7 @@
 #include "gcode.h"
 #include "powerstep01.h"
 #include "utils/uartstdio.h"
+#include "utils/ustdlib.h"
 
 Motor_t Motor={0};
 
@@ -63,47 +64,68 @@ int Cmd_Gcode_Print_Motor(struct tcp_pcb* tpcb, int argc, char *argv[])
 int Cmd_Gcode_G1(struct tcp_pcb* tpcb, int argc, char *argv[])
 {
    uint8_t i;
-   Motor.Total_Vel=1000;
-   Motor.Total_Acc=1500;
-   Motor.Total_Dec=1500;
+   Motor.Acc_Step[0] = (Motor.Total_Vel*Motor.Total_Vel)/(2*Motor.Total_Acc);
+   Motor.Dec_Step[0] = (Motor.Total_Vel*Motor.Total_Vel)/(2*Motor.Total_Dec)+Motor.Total_Vel/20;
+   UART_ETHprintf(DEBUG_MSG,"step to acc=%d dec=%d\r\n",Motor.Acc_Step[0],Motor.Dec_Step[0]);
    if(argc>1) {
       for(i=0;i<NUM_AXES;i++)
-         Motor.Target[i] = atoi(argv[1+i]);
+         Motor.Target[i] = ustrtof(argv[1+i],NULL)*100;
       Delta    ( &Motor );
       Distance ( &Motor );
-      //  UART_ETHprintf(UART_MSG,"distance=%f\r\n",Motor.Distance);
+        UART_ETHprintf(DEBUG_MSG,"distance=%f\r\n",Motor.Distance);
       Vel   ( &Motor );
       Accel ( &Motor );
-      Motor.Vel[0]+=20;Motor.Vel[1]+=20;
+         Motor.Vel[0]+=20;Motor.Vel[1]+=20; //le pongo un poco mas de vel para que no limite
       Set_Max_Speed ( Motor.Vel );
-      Motor.Vel[0]-=20;Motor.Vel[1]-=20;
+         Motor.Vel[0]-=20;Motor.Vel[1]-=20; //vuelvo al valor correcto
       Abs_Pos ( Motor.Pos            );
       Set_Acc ( Motor.Acc            );
       Set_Dec ( Motor.Dec            );
-      Run     ( Motor.Dir, Motor.Vel );
-      while(Loop_Til_Target())
-         ;
+      if((Motor.Acc_Step[0]+Motor.Dec_Step[0])<Motor.Distance) {
+         UART_ETHprintf(DEBUG_MSG,"run\r\n");
+         Run     ( Motor.Dir, Motor.Vel );
+         while(Loop_Til_Target())
+            ;
+      }
+      UART_ETHprintf(DEBUG_MSG,"goto\r\n");
       Goto(Motor.Target);
       for(i=0;i<NUM_AXES;i++)
          Motor.Pos[i]=Motor.Target[i];
 
-      //   UART_ETHprintf(UART_MSG,"target\r\n");
+      //   UART_ETHprintf(DEBUG_MSG,"target\r\n");
    }
   return 0;
 }
 
 bool Loop_Til_Target(void)
 {
-   vTaskDelay( pdMS_TO_TICKS(100) );
    Abs_Pos  ( Motor.Pos );
    Delta    ( &Motor    );
    Distance ( &Motor    );
-//   UART_ETHprintf(UART_MSG,"distance=%f\r\n",Motor.Distance);
-   if(Motor.Distance <  50)
+//   UART_ETHprintf(DEBUG_MSG,"distance=%f\r\n",Motor.Distance);
+   if(Motor.Distance <  Motor.Dec_Step[0])
       return 0;
 //   Vel     ( &Motor               );
 //   Run     ( Motor.Dir, Motor.Vel );
-   UART_ETHprintf(UART_MSG,"pos_x=%d pos_y=%d\r\n",Motor.Pos[0], Motor.Pos[1]);
+   UART_ETHprintf(DEBUG_MSG,"pos_x=%d pos_y=%d\r\n",Motor.Pos[0], Motor.Pos[1]);
+   vTaskDelay( pdMS_TO_TICKS(10) );
    return 1;
+}
+int Cmd_Gcode_F(struct tcp_pcb* tpcb, int argc, char *argv[])
+{
+   if(argc>1) {
+      Motor.Total_Vel = ustrtof ( argv[1],NULL );
+      UART_ETHprintf(DEBUG_MSG,"New feed=%f\r\n",Motor.Total_Vel);
+   }
+  return 0;
+}
+int Cmd_Gcode_Ramps(struct tcp_pcb* tpcb, int argc, char *argv[])
+{
+   if(argc>1) {
+      Motor.Total_Acc = ustrtof ( argv[1],NULL );
+      Motor.Total_Dec = ustrtof ( argv[2],NULL );
+      UART_ETHprintf(DEBUG_MSG,"New Ramps Acc=%f Dec=%f\r\n",Motor.Total_Acc,Motor.Total_Dec);
+   }
+  return 0;
 }
 

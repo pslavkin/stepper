@@ -96,10 +96,12 @@ tCmdLineEntry Motor_Cmd_Table[] =
     { "nowait"  ,Cmd_Nowait         ,": no wait" }                                                                            ,
     { "?"       ,Cmd_Help           ,": help" }                                                                               ,
     { "<"       ,Cmd_Back2Main      ,": back" }                                                                               ,
-    { "G1" ,Cmd_Gcode_G1          ,": linear move XxYyZz" } ,
-    { "p"  ,Cmd_Gcode_Print_Motor ,": print structure" }    ,
-    { "?"  ,Cmd_Help              ,": help" }               ,
-    { "<"  ,Cmd_Back2Main         ,": back" }               ,
+    { "G1"    ,Cmd_Gcode_G1          ,": linear move XxYyZz" }     ,
+    { "F"     ,Cmd_Gcode_F           ,": feed rater" }             ,
+    { "ramps" ,Cmd_Gcode_Ramps       ,": set ramps accel deccel" } ,
+    { "p"     ,Cmd_Gcode_Print_Motor ,": print structure" }        ,
+    { "?"     ,Cmd_Help              ,": help" }                   ,
+    { "<"     ,Cmd_Back2Main         ,": back" }                   ,
     { 0    ,0                     ,0 }
 };
 tCmdLineEntry Gcode_Cmd_Table[] =

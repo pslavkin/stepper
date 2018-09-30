@@ -1,15 +1,20 @@
-<
-<
-login 1234
-motor
 init
-maxv 970 242
-acc  5000 5000
-dec  5000 5000
+home
+F 1000
+ramps 10000 10000
+G1 0 10
 wait
-goto 1000   250
+G1 10 10
 wait
-goto  0 0
+G1 10 20
+wait
+G1 20 20
+wait
+G1 20 30
+wait
+G1 30 30
+wait
+G1 0 0
 wait
 hiz
 .
