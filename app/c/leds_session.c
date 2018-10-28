@@ -68,8 +68,11 @@ void Led_Link_Task(void* nil)
    SysCtlPeripheralEnable (LED_LINK_PERIPH);
    GPIOPinTypeGPIOOutput  (LED_LINK_PORT,LED_LINK_PIN);
    while(1) {
-      vTaskDelay(pdMS_TO_TICKS(1000));
-      GPIOPinWrite(LED_LINK_PORT, LED_LINK_PIN, EMACPHYLinkUp());
+      vTaskDelay(pdMS_TO_TICKS(100));
+      GPIOPinWrite(LED_LINK_PORT, LED_LINK_PIN, LED_LINK_PIN);
+      vTaskDelay(pdMS_TO_TICKS(100));
+      GPIOPinWrite(LED_LINK_PORT, LED_LINK_PIN, 0);
+//      GPIOPinWrite(LED_LINK_PORT, LED_LINK_PIN, EMACPHYLinkUp());
    }
 }
 //------------------------------------------------------------------

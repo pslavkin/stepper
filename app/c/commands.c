@@ -68,7 +68,8 @@ tCmdLineEntry Ip_Cmd_Table[] =
 tCmdLineEntry Motor_Cmd_Table[] =
 {
     { "init"    ,Cmd_Spi_Init       ,": init regs" }                                                                          ,
-    { "pos"     ,Cmd_Spi_Abs_Pos    ,": actual pos" }                                      ,
+    { "pos"     ,Saved_Abs_Pos    ,": actual pos" }                                      ,
+    { "POS"     ,Cmd_Spi_Abs_Pos    ,": actual pos" }                                      ,
     { "run"     ,Cmd_Spi_Run        ,": Sets the target speed and the motor direction" }                                      ,
     { "step"    ,Cmd_Spi_Step       ,": Puts the device in Step-clock" }                                                      ,
     { "move"    ,Cmd_Spi_Move       ,": Makes N_STEP (micro)steps in DIR direction (Not performable when motor is running)" } ,
@@ -433,6 +434,11 @@ int Cmd_Spi_Abs_Pos(struct tcp_pcb* tpcb, int argc, char *argv[])
    int32_t  Pos[ NUM_AXES ];
    Abs_Pos(Pos);
    UART_ETHprintf(tpcb,"Pos= %d %d\r\n",Pos[0],Pos[1]);
+   return 0;
+}/*}}}*/
+int Saved_Abs_Pos(struct tcp_pcb* tpcb, int argc, char *argv[])
+{/*{{{*/
+   UART_ETHprintf(tpcb,"Pos= %d %d\r\n",Motor.Pos[0],Motor.Pos[1]);
    return 0;
 }/*}}}*/
 int Cmd_Spi_Step       ( struct tcp_pcb* tpcb, int argc, char *argv[] )

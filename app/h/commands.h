@@ -42,6 +42,7 @@ extern int Cmd_Show_Id   ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 
 extern int Cmd_Spi_Init       ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Spi_Abs_Pos(struct tcp_pcb* tpcb, int argc, char *argv[]);
+extern int Saved_Abs_Pos(struct tcp_pcb* tpcb, int argc, char *argv[]);
 extern int Cmd_Spi_Run        ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Spi_Step       ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Spi_Move       ( struct tcp_pcb* tpcb, int argc, char *argv[] );

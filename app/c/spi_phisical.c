@@ -32,7 +32,7 @@ void Pulse_Lo ( void ) { GPIOPinReset ( GPIO_PORTM_BASE ,GPIO_PIN_3 );}
 
 bool Busy_Read ( void ) { return GPIOPinRead ( GPIO_PORTP_BASE ,GPIO_PIN_2 ) ;}
 
-QueueHandle_t   Busy_Sem;
+SemaphoreHandle_t Busy_Sem;
 bool Wait_Busy=false;
 
 void  Set_Wait_Busy     (void)
@@ -47,7 +47,7 @@ void  Unset_Wait_Busy   (void)
 }
 void  Init_Spi_Phisical (void)
 {
-    Busy_Sem = xSemaphoreCreateBinary();
+    Busy_Sem = xSemaphoreCreateMutex();
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI2);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
@@ -85,6 +85,7 @@ void Send_Cmd2Spi(struct tcp_pcb* tpcb, Spi_Params* Params)
    uint32_t Ans;
    uint8_t i;
    int8_t n;
+   xSemaphoreTake(Busy_Sem,portMAX_DELAY);
    for(i=0;i<=Params->Len;i++) {
       Cs_Lo();
          for(n=NUM_AXES-1;n>=0;n--) {
@@ -101,6 +102,7 @@ void Send_Cmd2Spi(struct tcp_pcb* tpcb, Spi_Params* Params)
       }
       Cs_Hi();
    }
+   xSemaphoreGive(Busy_Sem);
 }
 //--------------------------------------------------------------------------------
 void Get_Data(uint8_t Reg, uint8_t Option,uint32_t* Ans, uint8_t Len)
@@ -206,7 +208,7 @@ void Init_Powerstep(struct tcp_pcb* tpcb)
    Set_Reg       ( Config_Reg    ,V      ,2 );
    Set_Reg_Equal ( Dec_Reg       ,0x000A ,2 );
    Set_Reg_Equal ( Acc_Reg       ,0x000A ,2 );
-   Set_Reg_Equal ( Step_Mode_Reg ,0x00   ,1 );
+   //Set_Reg_Equal ( Step_Mode_Reg ,0x00   ,1 );
 }
 void Toogle_Pulses(uint32_t Pulses)
 {
@@ -226,7 +228,6 @@ void Busy_Read_Task(void* nil)
       UART_ETHprintf(DEBUG_MSG,"busy\n");
       while(Busy_Read()==0)
          vTaskDelay ( pdMS_TO_TICKS(10 ));
-      xSemaphoreGive(Busy_Sem);
       UART_ETHprintf(DEBUG_MSG,"ready\n");
    }
 }
