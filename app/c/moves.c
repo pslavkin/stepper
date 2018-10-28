@@ -10,7 +10,7 @@
 #include "utils/uartstdio.h"
 #include "utils/ustdlib.h"
 
-Motor_t Motor={0};
+Motor_t GMotor={0};
 QueueHandle_t Moves_Queue;
 
 void Begin_Dir(Motor_t* M)
@@ -80,22 +80,62 @@ void Accel(Motor_t* M)
 
 int Cmd_Gcode_Print_Motor(struct tcp_pcb* tpcb, int argc, char *argv[])
 {
-   UART_ETHprintf(tpcb,"X=%d Y=%d Next_X=%d Next_Y=%d Vel_X=%f Vel_Y=%f Acc_X=%f Acc_Y=%f Distance=%f \r\n",
-         Motor.Pos[0], Motor.Pos[1], Motor.Target[0],Motor.Target[1], Motor.Vel[0], Motor.Vel[1], Motor.Acc[0],Motor.Acc[1],Motor.Distance);
+   UART_ETHprintf(tpcb,"V=%f Acc=%f Dec=%f\r\n",
+         GMotor.Total_Vel, GMotor.Total_Acc, GMotor.Total_Dec);
    return 0;
 }
 int Cmd_Gcode_G1(struct tcp_pcb* tpcb, int argc, char *argv[])
 {
    uint8_t i;
-   Motor.Acc_Step[0] = (128*Motor.Total_Vel*Motor.Total_Vel)/(2*Motor.Total_Acc); //sale de que Vf^2=V0^2+2*a*X
-   Motor.Dec_Step[0] = (128*Motor.Total_Vel*Motor.Total_Vel)/(2*Motor.Total_Dec)+Motor.Total_Vel*128/10;
-   UART_ETHprintf(DEBUG_MSG,"step to acc=%d dec=%d\r\n",Motor.Acc_Step[0],Motor.Dec_Step[0]);
+   Motor_t Motor;
+   Motor.Total_Vel = GMotor.Total_Vel;
+   Motor.Total_Acc = GMotor.Total_Acc;
+   Motor.Total_Dec = GMotor.Total_Dec;
    if(argc>1) {
       for(i=0;i<NUM_AXES;i++)
          Motor.Target[i] = ustrtof(argv[1+i],NULL);
-      Begin_Dir ( &Motor );
-      Delta     ( &Motor );
-      Distance  ( &Motor );
+      xQueueSend(Moves_Queue,&Motor,portMAX_DELAY);
+   }
+  return 0;
+}
+
+int Cmd_Gcode_F(struct tcp_pcb* tpcb, int argc, char *argv[])
+{
+   if(argc>1) {
+      GMotor.Total_Vel = ustrtof ( argv[1],NULL );
+      UART_ETHprintf(DEBUG_MSG,"New feed=%f\r\n",GMotor.Total_Vel);
+   }
+  return 0;
+}
+int Cmd_Gcode_Ramps(struct tcp_pcb* tpcb, int argc, char *argv[])
+{
+   if(argc>1) {
+      GMotor.Total_Acc = ustrtof ( argv[1],NULL );
+      GMotor.Total_Dec = ustrtof ( argv[2],NULL );
+      UART_ETHprintf(DEBUG_MSG,"New Ramps Acc=%f Dec=%f\r\n",GMotor.Total_Acc,GMotor.Total_Dec);
+   }
+  return 0;
+}
+
+void Moves_Parser(void* nil)
+{
+   Moves_Queue= xQueueCreate(MOVES_QUEUE_SIZE,sizeof(Motor_t));
+   GMotor.Total_Vel = 100;
+   GMotor.Total_Acc = 100;
+   GMotor.Total_Dec = 100;
+   Motor_t Motor;
+   while(1) {
+      while(xQueueReceive(Moves_Queue,&Motor,portMAX_DELAY)!=pdTRUE)
+         ;
+   Motor.Acc_Step[0] = (128*Motor.Total_Vel*Motor.Total_Vel)/(2*Motor.Total_Acc); //sale de que Vf^2=V0^2+2*a*X
+   Motor.Dec_Step[0] = (128*Motor.Total_Vel*Motor.Total_Vel)/(2*Motor.Total_Dec)+Motor.Total_Vel*128/10;
+   UART_ETHprintf(UART_MSG,"step to acc=%d dec=%d\r\n",Motor.Acc_Step[0],Motor.Dec_Step[0]);
+
+
+      Abs_Pos   ( Motor.Pos );
+      Begin_Dir ( &Motor    );
+      Delta     ( &Motor    );
+      Distance  ( &Motor    );
         UART_ETHprintf(DEBUG_MSG,"distance=%f\r\n",Motor.Distance);
       Vel   ( &Motor );
       Accel ( &Motor );
@@ -105,74 +145,32 @@ int Cmd_Gcode_G1(struct tcp_pcb* tpcb, int argc, char *argv[])
       Abs_Pos ( Motor.Pos            );
       Set_Acc ( Motor.Acc            );
       Set_Dec ( Motor.Dec            );
-      struct Moves_Queue_Struct A;
-      xQueueSend(Moves_Queue,&A,portMAX_DELAY);
-   }
-  return 0;
-}
-
-bool Loop_Til_Target(void)
-{
-   Abs_Pos    ( Motor.Pos );
-   Actual_Dir ( &Motor    );
-   Delta      ( &Motor    );
-   Distance   ( &Motor    );
-//   UART_ETHprintf(DEBUG_MSG,"distance=%f\r\n",Motor.Distance);
-   if ( Motor.Distance <  Motor.Dec_Step[0] ||
-         Motor.Actual_Dir[0]!=Motor.Begin_Dir[0] ||
-         Motor.Actual_Dir[1]!=Motor.Begin_Dir[1])
-      return 0;
-//   Vel     ( &Motor               );
-//   Run     ( Motor.Dir, Motor.Vel );
-   UART_ETHprintf(DEBUG_MSG,"pos_x=%d pos_y=%d\r\n",Motor.Pos[0], Motor.Pos[1]);
-   vTaskDelay( pdMS_TO_TICKS(10) );
-   return 1;
-}
-int Cmd_Gcode_F(struct tcp_pcb* tpcb, int argc, char *argv[])
-{
-   if(argc>1) {
-      Motor.Total_Vel = ustrtof ( argv[1],NULL );
-      UART_ETHprintf(DEBUG_MSG,"New feed=%f\r\n",Motor.Total_Vel);
-   }
-  return 0;
-}
-int Cmd_Gcode_Ramps(struct tcp_pcb* tpcb, int argc, char *argv[])
-{
-   if(argc>1) {
-      Motor.Total_Acc = ustrtof ( argv[1],NULL );
-      Motor.Total_Dec = ustrtof ( argv[2],NULL );
-      UART_ETHprintf(DEBUG_MSG,"New Ramps Acc=%f Dec=%f\r\n",Motor.Total_Acc,Motor.Total_Dec);
-   }
-  return 0;
-}
-
-
-
-void Moves_Parser(void* nil)
-{
-   Moves_Queue= xQueueCreate(MOVES_QUEUE_SIZE,sizeof(struct Moves_Queue_Struct));
-   struct Moves_Queue_Struct Move;
-   Motor.Total_Vel = 100;
-   Motor.Total_Acc = 100;
-   Motor.Total_Dec = 100;
-   while(1) {
-      while(xQueueReceive(Moves_Queue,&Move,portMAX_DELAY)!=pdTRUE)
-         ;
       if((Motor.Acc_Step[0]+Motor.Dec_Step[0])<Motor.Distance) {
          UART_ETHprintf(DEBUG_MSG,"run\r\n");
          Run     ( Motor.Begin_Dir, Motor.Vel );
-         while(Loop_Til_Target())
-            ;
+         uint8_t Ans=1;
+         while(Ans==1) {
+            Abs_Pos    ( Motor.Pos );
+            Actual_Dir ( &Motor    );
+            Delta      ( &Motor    );
+            Distance   ( &Motor    );
+            if ( Motor.Distance <  Motor.Dec_Step[0] ||
+                  Motor.Actual_Dir[0]!=Motor.Begin_Dir[0] ||
+                  Motor.Actual_Dir[1]!=Motor.Begin_Dir[1])
+               Ans=0;
+            UART_ETHprintf(UART_MSG,"pos_x=%d pos_y=%d\r\n",Motor.Pos[0], Motor.Pos[1]);
+            vTaskDelay( pdMS_TO_TICKS(10) );
+         }
       }
       while(Busy_Read()==0)
          vTaskDelay ( pdMS_TO_TICKS(10 ));
-      UART_ETHprintf(DEBUG_MSG,"goto\r\n");
+      UART_ETHprintf(UART_MSG,"goto\r\n");
       Goto(Motor.Target);
       while(Motor.Pos[0]!=Motor.Target[0] ||
             Motor.Pos[1]!=Motor.Target[1]) {
             Abs_Pos ( Motor.Pos   );
             Speed   ( Motor.Speed );
-            UART_ETHprintf(DEBUG_MSG,"pos_x=%d pos_y=%d vel_x=%f vel_y=%f\r\n",Motor.Pos[0], Motor.Pos[1],Motor.Speed[0],Motor.Speed[1]);
+            UART_ETHprintf(UART_MSG,"pos_x=%d pos_y=%d vel_x=%f vel_y=%f\r\n",Motor.Pos[0], Motor.Pos[1],Motor.Speed[0],Motor.Speed[1]);
             vTaskDelay( pdMS_TO_TICKS(10) );
       }
       UART_ETHprintf(DEBUG_MSG,"target\r\n");

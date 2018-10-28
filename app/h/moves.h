@@ -24,7 +24,7 @@ typedef struct
 
 extern QueueHandle_t Moves_Queue;
 extern void          Moves_Parser(void* nil);
-extern Motor_t Motor;
+extern Motor_t GMotor;
 
 struct Moves_Queue_Struct {
    char A;
@@ -35,7 +35,6 @@ extern int Cmd_Gcode_G1          ( struct tcp_pcb* tpcb, int argc, char *argv[] 
 extern int Cmd_Gcode_F           ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Gcode_Print_Motor ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Gcode_Ramps       ( struct tcp_pcb* tpcb, int argc, char *argv[] );
-bool Loop_Til_Target(void);
 
 #endif
 
