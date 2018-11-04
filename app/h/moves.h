@@ -35,6 +35,7 @@ extern int Cmd_Gcode_G1          ( struct tcp_pcb* tpcb, int argc, char *argv[] 
 extern int Cmd_Gcode_F           ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Gcode_Print_Motor ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 extern int Cmd_Gcode_Ramps       ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+extern int Cmd_Get_Queue_Space   ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 
 #endif
 

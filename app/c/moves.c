@@ -51,32 +51,46 @@ void Delta(Motor_t* M)
 }
 void Distance(Motor_t* M)
 {
-   M->Distance=sqrt((uint64_t)M->Delta[0]*M->Delta[0]+(uint64_t)M->Delta[1]*M->Delta[1]);
+   M->Distance=sqrt((uint64_t)M->Delta[0]*M->Delta[0]+
+                    (uint64_t)M->Delta[1]*M->Delta[1]+
+                    (uint64_t)M->Delta[2]*M->Delta[2]);
 }
 void Vel(Motor_t* M)
 {
    uint8_t i;
    for(i=0;i<NUM_AXES;i++)
-      M->Vel[i]=M->Delta[i]*M->Total_Vel/M->Distance;
+      M->Vel[i]=(float)M->Delta[i]*(M->Total_Vel/M->Distance);
 }
+//uint8_t Bigger_Vel(Motor_t* M)
+//{
+//   uint8_t Ans;
+//   if ( M->Vel[0] > M->Vel[1] &&
+//        M->Vel[0] > M->Vel[2])
+//      Ans=0;
+//   else
+//      if ( M->Vel[1] > M->Vel[0] &&
+//           M->Vel[1] > M->Vel[2])
+//         Ans=1;
+//      else
+//         Ans=2;
+//   return Ans;
+//}
 
 void Accel(Motor_t* M)
 {
-   if ( M->Vel[0] > M->Vel[1] ) {
-      M->Acc[0] = M->Total_Acc;
-      M->Dec[0] = M->Total_Dec;
-
-      M->Acc[1] = (M->Acc[0])/(M->Vel[0])*M->Vel[1];
-      M->Dec[1] = (M->Dec[0])/(M->Vel[0])*M->Vel[1];
-   }
-   else {
-      M->Acc[1] = M->Total_Acc;
-      M->Dec[1] = M->Total_Dec;
-
-      M->Acc[0] = (M->Acc[1]/M->Vel[1])*M->Vel[0];
-      M->Dec[0] = (M->Dec[1]/M->Vel[1])*M->Vel[0];
+   uint8_t i;
+   for(i=0;i<NUM_AXES;i++) {
+      M->Acc[i]=M->Vel[i]*(M->Total_Acc/M->Total_Vel);
+      M->Dec[i]=M->Vel[i]*(M->Total_Dec/M->Total_Vel);
    }
 }
+
+int Cmd_Get_Queue_Space(struct tcp_pcb* tpcb, int argc, char *argv[])
+{
+   UART_ETHprintf(tpcb,"space=%d\r\n",uxQueueSpacesAvailable(Moves_Queue));
+   return 0;
+}
+
 
 int Cmd_Gcode_Print_Motor(struct tcp_pcb* tpcb, int argc, char *argv[])
 {
@@ -120,60 +134,62 @@ int Cmd_Gcode_Ramps(struct tcp_pcb* tpcb, int argc, char *argv[])
 void Moves_Parser(void* nil)
 {
    Moves_Queue= xQueueCreate(MOVES_QUEUE_SIZE,sizeof(Motor_t));
-   GMotor.Total_Vel = 100;
-   GMotor.Total_Acc = 100;
-   GMotor.Total_Dec = 100;
+   GMotor.Total_Vel = 600;
+   GMotor.Total_Acc = 30000;
+   GMotor.Total_Dec = 30000;
+   float Aux_Vel[NUM_AXES];
    Motor_t Motor;
    while(1) {
       while(xQueueReceive(Moves_Queue,&Motor,portMAX_DELAY)!=pdTRUE)
          ;
-   Motor.Acc_Step[0] = (128*Motor.Total_Vel*Motor.Total_Vel)/(2*Motor.Total_Acc); //sale de que Vf^2=V0^2+2*a*X
-   Motor.Dec_Step[0] = (128*Motor.Total_Vel*Motor.Total_Vel)/(2*Motor.Total_Dec)+Motor.Total_Vel*128/10;
-   UART_ETHprintf(UART_MSG,"step to acc=%d dec=%d\r\n",Motor.Acc_Step[0],Motor.Dec_Step[0]);
+      Motor.Acc_Step[0] = (128*Motor.Total_Vel*Motor.Total_Vel)/(2*Motor.Total_Acc); //sale de que Vf^2=V0^2+2*a*X
+      Motor.Dec_Step[0] = (128*Motor.Total_Vel*Motor.Total_Vel)/(2*Motor.Total_Dec)+Motor.Total_Vel*128*0.05;
+//      UART_ETHprintf(UART_MSG,"step to acc=%d dec=%d\r\n",Motor.Acc_Step[0],Motor.Dec_Step[0]);
 
+      Abs_Pos    ( Motor.Pos );
+      Begin_Dir  ( &Motor    );
+      Actual_Dir ( &Motor    );
+      Delta      ( &Motor    );
+      Distance   ( &Motor    );
+      Vel        ( &Motor    );
+      Accel      ( &Motor    );
+      Set_Acc    ( Motor.Acc );
+      Set_Dec    ( Motor.Dec );
+  //    UART_ETHprintf(UART_MSG,"distance=%f\r\n",Motor.Distance);
 
-      Abs_Pos   ( Motor.Pos );
-      Begin_Dir ( &Motor    );
-      Delta     ( &Motor    );
-      Distance  ( &Motor    );
-        UART_ETHprintf(DEBUG_MSG,"distance=%f\r\n",Motor.Distance);
-      Vel   ( &Motor );
-      Accel ( &Motor );
-         Motor.Vel[0]+=20;Motor.Vel[1]+=20; //le pongo un poco mas de vel para que no limite
-      Set_Max_Speed ( Motor.Vel );
-         Motor.Vel[0]-=20;Motor.Vel[1]-=20; //vuelvo al valor correcto
-      Abs_Pos ( Motor.Pos            );
-      Set_Acc ( Motor.Acc            );
-      Set_Dec ( Motor.Dec            );
+      Aux_Vel[0]=Motor.Vel[0]+20;   //le pongo un poco mas de vel para que no limite
+      Aux_Vel[1]=Motor.Vel[1]+20;
+      Aux_Vel[2]=Motor.Vel[2]+20;
+      Set_Max_Speed ( Aux_Vel );
+//         Aux_Vel[0]=10; //Motor.Vel[0]-100;
+//         Aux_Vel[1]=10; //Motor.Vel[1]-100;
+//         Aux_Vel[2]=10; //Motor.Vel[2]-100;
+//         Set_Min_Speed ( Aux_Vel );
+
       if((Motor.Acc_Step[0]+Motor.Dec_Step[0])<Motor.Distance) {
-         UART_ETHprintf(DEBUG_MSG,"run\r\n");
+         //UART_ETHprintf(UART_MSG,"run\r\n");
          Run     ( Motor.Begin_Dir, Motor.Vel );
-         uint8_t Ans=1;
-         while(Ans==1) {
-            Abs_Pos    ( Motor.Pos );
-            Actual_Dir ( &Motor    );
-            Delta      ( &Motor    );
-            Distance   ( &Motor    );
-            if ( Motor.Distance <  Motor.Dec_Step[0] ||
-                  Motor.Actual_Dir[0]!=Motor.Begin_Dir[0] ||
-                  Motor.Actual_Dir[1]!=Motor.Begin_Dir[1])
-               Ans=0;
-            UART_ETHprintf(UART_MSG,"pos_x=%d pos_y=%d\r\n",Motor.Pos[0], Motor.Pos[1]);
+         while(Busy_Read()==0)
+            vTaskDelay ( pdMS_TO_TICKS(10 ));
+         while ( Motor.Distance > Motor.Dec_Step[0]    &&
+               Motor.Actual_Dir[0]==Motor.Begin_Dir[0] &&
+               Motor.Actual_Dir[1]==Motor.Begin_Dir[1] &&
+               Motor.Actual_Dir[2]==Motor.Begin_Dir[2]) {
+            Abs_Pos    ( Motor.Pos                  );
+            Actual_Dir ( &Motor                     );
+            Delta      ( &Motor                     );
+            Distance   ( &Motor                     );
+            Vel        ( &Motor                     );
+//            Run        ( Motor.Begin_Dir, Motor.Vel );
+          //  UART_ETHprintf(UART_MSG,"x=%d y=%d z=%d\r\n",Motor.Pos[0], Motor.Pos[1], Motor.Pos[2]);
             vTaskDelay( pdMS_TO_TICKS(10) );
          }
       }
+//      UART_ETHprintf(UART_MSG,"goto\r\n");
+      Goto(Motor.Target);
       while(Busy_Read()==0)
          vTaskDelay ( pdMS_TO_TICKS(10 ));
-      UART_ETHprintf(UART_MSG,"goto\r\n");
-      Goto(Motor.Target);
-      while(Motor.Pos[0]!=Motor.Target[0] ||
-            Motor.Pos[1]!=Motor.Target[1]) {
-            Abs_Pos ( Motor.Pos   );
-            Speed   ( Motor.Speed );
-            UART_ETHprintf(UART_MSG,"pos_x=%d pos_y=%d vel_x=%f vel_y=%f\r\n",Motor.Pos[0], Motor.Pos[1],Motor.Speed[0],Motor.Speed[1]);
-            vTaskDelay( pdMS_TO_TICKS(10) );
-      }
-      UART_ETHprintf(DEBUG_MSG,"target\r\n");
+ //     UART_ETHprintf(UART_MSG,"target\r\n");
    }
 }
 

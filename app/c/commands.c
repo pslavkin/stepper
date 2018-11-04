@@ -101,6 +101,7 @@ tCmdLineEntry Motor_Cmd_Table[] =
     { "F"     ,Cmd_Gcode_F           ,": feed rater" }             ,
     { "ramps" ,Cmd_Gcode_Ramps       ,": set ramps accel deccel" } ,
     { "p"     ,Cmd_Gcode_Print_Motor ,": print structure" }        ,
+    { "q"     ,Cmd_Get_Queue_Space,": available space in gcode space" }        ,
     { "?"     ,Cmd_Help              ,": help" }                   ,
     { "<"     ,Cmd_Back2Main         ,": back" }                   ,
     { 0    ,0                     ,0 }
@@ -399,7 +400,7 @@ int Cmd_Spi_Get_Param(struct tcp_pcb* tpcb, int argc, char *argv[])
    if(argc>1) {
       uint32_t Ans[NUM_AXES]={0};
       Get_Reg4Args(argv,Ans);
-      UART_ETHprintf(tpcb,"Reg: %d = 0x%x 0x%x\r\n",atoi(argv[1]),Ans[0],Ans[1]);
+      UART_ETHprintf(tpcb,"Reg: %d = 0x%x 0x%x 0x%x\r\n",atoi(argv[1]),Ans[0],Ans[1],Ans[2]);
    }
    return 0;
 }/*}}}*/
@@ -433,7 +434,7 @@ int Cmd_Spi_Abs_Pos(struct tcp_pcb* tpcb, int argc, char *argv[])
 {/*{{{*/
    int32_t  Pos[ NUM_AXES ];
    Abs_Pos(Pos);
-   UART_ETHprintf(tpcb,"Pos= %d %d\r\n",Pos[0],Pos[1]);
+   UART_ETHprintf(tpcb,"Pos= %d %d %d\r\n",Pos[0],Pos[1],Pos[2]);
    return 0;
 }/*}}}*/
 int Saved_Abs_Pos(struct tcp_pcb* tpcb, int argc, char *argv[])
@@ -515,7 +516,7 @@ int Cmd_Spi_Status     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
    uint32_t Ans[NUM_AXES];
    Get_App(Get_Status_Cmd,Ans,2);
-   UART_ETHprintf(tpcb,"status= 0x%04x 0x%04x \r\n",Ans[0],Ans[1]);
+   UART_ETHprintf(tpcb,"status= 0x%04x 0x%04x 0x%04x \r\n",Ans[0],Ans[1],Ans[2]);
    return 0;
 }/*}}}*/
 int Cmd_Toogle_Pulses(struct tcp_pcb* tpcb, int argc, char *argv[])
@@ -537,7 +538,7 @@ int Cmd_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
    for(i=0;i<NUM_AXES;i++)
       V[i]=Ans[i]/67.108864;
    //Speed(V);
-   UART_ETHprintf(tpcb,"step/seg= %f %f\r\n",V[0],V[1]);
+   UART_ETHprintf(tpcb,"step/seg= %f %f %f\r\n",V[0],V[1],V[2]);
    return 0;
 }/*}}}*/
 
@@ -552,7 +553,7 @@ int Cmd_Max_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
    }
    else {
       Get_Max_Speed(V);
-      UART_ETHprintf(tpcb,"step/seg= %f %f\r\n",V[0],V[1]);
+      UART_ETHprintf(tpcb,"step/seg= %f %f %f\r\n",V[0],V[1],V[2]);
    }
    return 0;
 }/*}}}*/
@@ -567,7 +568,7 @@ int Cmd_Min_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
    }
    else {
       Get_Min_Speed(V);
-      UART_ETHprintf(tpcb,"step/seg= %f %f\r\n",V[0],V[1]);
+      UART_ETHprintf(tpcb,"step/seg= %f %f %f\r\n",V[0],V[1],V[2]);
    }
    return 0;
 }/*}}}*/
@@ -585,7 +586,7 @@ int Cmd_Acc     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
       Get_Reg ( Acc_Reg,Ans,2 );
       for(i=0;i<NUM_AXES;i++)
          V[i]=Ans[i]/0.068719476736;
-      UART_ETHprintf(tpcb,"[step/seg]2= %f %f\r\n",V[0],V[1]);
+      UART_ETHprintf(tpcb,"[step/seg]2= %f %f %f\r\n",V[0],V[1],V[2]);
    }
    return 0;
 }/*}}}*/
@@ -603,7 +604,7 @@ int Cmd_Dec     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
       Get_Reg ( Dec_Reg,Ans,2 );
       for(i=0;i<NUM_AXES;i++)
          V[i]=Ans[i]/0.068719476736;
-      UART_ETHprintf(tpcb,"[step/seg]2= %f %f\r\n",V[0],V[1]);
+      UART_ETHprintf(tpcb,"[step/seg]2= %f %f %f\r\n",V[0],V[1],V[2]);
    }
    return 0;
 }/*}}}*/

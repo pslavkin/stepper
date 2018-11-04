@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#define NUM_AXES 2
+#define NUM_AXES 3
 enum Step01_App_Cmd {
    NOP              = 0x00,   //0b_0000_0000,
    Set_Param_Cmd    = 0x00,   //0b_0000_0000,

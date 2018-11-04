@@ -198,13 +198,14 @@ void Send_App4Args ( uint8_t Cmd, char *argv[], uint8_t Len)
 void Init_Powerstep(struct tcp_pcb* tpcb)
 {
    uint32_t    V[ NUM_AXES ];
-   Set_Reg_Equal ( 9          , 60    ,1 );
-   Set_Reg_Equal ( 10         , 50    ,1 );
-   Set_Reg_Equal ( 11         , 50    ,1 );
-   Set_Reg_Equal ( 12         , 50    ,1 );
+   Set_Reg_Equal ( 9          , 50    ,1 );
+   Set_Reg_Equal ( 10         , 80    ,1 );
+   Set_Reg_Equal ( 11         , 80    ,1 );
+   Set_Reg_Equal ( 12         , 80    ,1 );
 
-   V[1]=0x2C0D;V[0]=0x2C0B; // uno genera el clk de salida de 16m desde su
-                            // interno y ekl otro recibe y regenera inviertido
+   V[0]=0x2C0B; // uno genera el clk de salida de 16m desde su clk interno
+   V[1]=0x2C0D; // y ekl otro recibe y regenera inviertido
+   V[2]=0x2C0D;
    Set_Reg       ( Config_Reg    ,V      ,2 );
    Set_Reg_Equal ( Dec_Reg       ,0x000A ,2 );
    Set_Reg_Equal ( Acc_Reg       ,0x000A ,2 );
