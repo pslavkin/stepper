@@ -13,27 +13,15 @@
 Motor_t GMotor={0};
 QueueHandle_t Moves_Queue;
 
-void Begin_Dir(Motor_t* M)
+void Dir(Motor_t* M)
 {
    uint8_t i;
    for(i=0;i<NUM_AXES;i++) {
       if(M->Pos[i]>=M->Target[i]) {
-         M->Begin_Dir[i]   = 0;
+         M->Dir[i]   = 0;
       }
       else {
-         M->Begin_Dir[i]   = 1;
-      }
-   }
-}
-void Actual_Dir(Motor_t* M)
-{
-   uint8_t i;
-   for(i=0;i<NUM_AXES;i++) {
-      if(M->Pos[i]>=M->Target[i]) {
-         M->Actual_Dir[i]   = 0;
-      }
-      else {
-         M->Actual_Dir[i]   = 1;
+         M->Dir[i]   = 1;
       }
    }
 }
@@ -41,13 +29,41 @@ void Delta(Motor_t* M)
 {
    uint8_t i;
    for(i=0;i<NUM_AXES;i++) {
-      if(M->Pos[i]>=M->Target[i]) {
+      if(M->Dir[i]==0) {
          M->Delta[i] = M->Pos[i]-M->Target[i];
       }
       else {
          M->Delta[i] = M->Target[i]-M->Pos[i];
       }
+    //  UART_ETHprintf(UART_MSG,"delta=%d\r\n",M->Delta[i]);
    }
+}
+void Acc_Dec_Steps(Motor_t* M)
+{
+   uint8_t i;
+   for(i=0;i<NUM_AXES;i++) {
+      M->Acc_Step[i]= (128*M->Vel[i]*M->Vel[i])/(2*M->Acc[i]);
+      M->Dec_Step[i]= (128*M->Vel[i]*M->Vel[i])/(2*M->Dec[i])+(M->Vel[i]*128*0.05);
+   //   UART_ETHprintf(UART_MSG,"step to acc=%d dec=%d\r\n",M->Acc_Step[i],M->Dec_Step[i]);
+   }
+}
+bool Time2Goto(Motor_t* M)
+{
+   uint8_t i,Goto=0;
+   for(i=0;i<NUM_AXES;i++) {
+      if(M->Dec_Step[i]>=M->Delta[i])
+         Goto++;
+   }
+   return Goto==3;
+}
+bool Run_Or_Goto(Motor_t* M)
+{
+   uint8_t i,Goto=0;
+   for(i=0;i<NUM_AXES ;i++) {
+      if((M->Acc_Step[i]+M->Dec_Step[i])>=M->Delta[i])
+         Goto++;
+   }
+   return Goto==3;
 }
 void Distance(Motor_t* M)
 {
@@ -61,21 +77,6 @@ void Vel(Motor_t* M)
    for(i=0;i<NUM_AXES;i++)
       M->Vel[i]=(float)M->Delta[i]*(M->Total_Vel/M->Distance);
 }
-//uint8_t Bigger_Vel(Motor_t* M)
-//{
-//   uint8_t Ans;
-//   if ( M->Vel[0] > M->Vel[1] &&
-//        M->Vel[0] > M->Vel[2])
-//      Ans=0;
-//   else
-//      if ( M->Vel[1] > M->Vel[0] &&
-//           M->Vel[1] > M->Vel[2])
-//         Ans=1;
-//      else
-//         Ans=2;
-//   return Ans;
-//}
-
 void Accel(Motor_t* M)
 {
    uint8_t i;
@@ -90,7 +91,6 @@ int Cmd_Get_Queue_Space(struct tcp_pcb* tpcb, int argc, char *argv[])
    UART_ETHprintf(tpcb,"space=%d\r\n",uxQueueSpacesAvailable(Moves_Queue));
    return 0;
 }
-
 
 int Cmd_Gcode_Print_Motor(struct tcp_pcb* tpcb, int argc, char *argv[])
 {
@@ -134,9 +134,9 @@ int Cmd_Gcode_Ramps(struct tcp_pcb* tpcb, int argc, char *argv[])
 void Moves_Parser(void* nil)
 {
    Moves_Queue= xQueueCreate(MOVES_QUEUE_SIZE,sizeof(Motor_t));
-   GMotor.Total_Vel = 100;
-   GMotor.Total_Acc = 100;
-   GMotor.Total_Dec = 100;
+   GMotor.Total_Vel = 600;
+   GMotor.Total_Acc = 1000;
+   GMotor.Total_Dec = 1000;
    float Aux_Vel[NUM_AXES];
    Motor_t Motor;
    while(1) {
@@ -144,23 +144,17 @@ void Moves_Parser(void* nil)
          ;
 //      UART_ETHprintf(UART_MSG,"step to acc=%d dec=%d\r\n",Motor.Acc_Step[0],Motor.Dec_Step[0]);
 
-      Abs_Pos    ( Motor.Pos );
-      Begin_Dir  ( &Motor    );
-      Actual_Dir ( &Motor    );
-      Delta      ( &Motor    );
-      Distance   ( &Motor    );
-      Vel        ( &Motor    );
-      Accel      ( &Motor    );
-      Set_Acc    ( Motor.Acc );
-      Set_Dec    ( Motor.Dec );
-      Get_Acc    ( Motor.Acc );
-      Get_Dec    ( Motor.Dec );
-      float Accel_Recalculated=sqrt(Motor.Acc[0]*Motor.Acc[0]+Motor.Acc[1]*Motor.Acc[1]+Motor.Acc[2]*Motor.Acc[2]);
-//      Motor.Acc_Step[0] = (128*Motor.Total_Vel*Motor.Total_Vel)/(2*Motor.Total_Acc); //sale de que Vf^2=V0^2+2*a*X
-//      Motor.Dec_Step[0] = (128*Motor.Total_Vel*Motor.Total_Vel)/(2*Motor.Total_Dec)+Motor.Total_Vel*128*0.05;
-      Motor.Acc_Step[0] = (128*Motor.Total_Vel*Motor.Total_Vel)/(2*Accel_Recalculated); //sale de que Vf^2=V0^2+2*a*X
-      Motor.Dec_Step[0] = (128*Motor.Total_Vel*Motor.Total_Vel)/(2*Accel_Recalculated)+Motor.Total_Vel*128*0.05;
-  //    UART_ETHprintf(UART_MSG,"distance=%f\r\n",Motor.Distance);
+      Abs_Pos       ( Motor.Pos );
+      Dir           ( &Motor    );
+      Delta         ( &Motor    );
+      Distance      ( &Motor    );
+      Vel           ( &Motor    );
+      Accel         ( &Motor    );
+      Set_Acc       ( Motor.Acc );
+      Set_Dec       ( Motor.Dec );
+      Get_Acc       ( Motor.Acc );
+      Get_Dec       ( Motor.Dec );
+      Acc_Dec_Steps ( &Motor    );
 
       Aux_Vel[0]=Motor.Vel[0]+20;   //le pongo un poco mas de vel para que no limite
       Aux_Vel[1]=Motor.Vel[1]+20;
@@ -171,26 +165,18 @@ void Moves_Parser(void* nil)
 //         Aux_Vel[2]=10; //Motor.Vel[2]-100;
 //         Set_Min_Speed ( Aux_Vel );
 
-      if((Motor.Acc_Step[0]+Motor.Dec_Step[0])<Motor.Distance) {
-         //UART_ETHprintf(UART_MSG,"run\r\n");
-         Run     ( Motor.Begin_Dir, Motor.Vel );
+      if(Run_Or_Goto(&Motor)==false) {
+//         UART_ETHprintf(UART_MSG,"run\r\n");
+         Run     ( Motor.Dir, Motor.Vel );
          while(Busy_Read()==0)
             vTaskDelay ( pdMS_TO_TICKS(10 ));
-         while ( Motor.Distance > Motor.Dec_Step[0]    &&
-               Motor.Actual_Dir[0]==Motor.Begin_Dir[0] &&
-               Motor.Actual_Dir[1]==Motor.Begin_Dir[1] &&
-               Motor.Actual_Dir[2]==Motor.Begin_Dir[2]) {
-            Abs_Pos    ( Motor.Pos                  );
-            Actual_Dir ( &Motor                     );
-            Delta      ( &Motor                     );
-            Distance   ( &Motor                     );
-            Vel        ( &Motor                     );
-//            Run        ( Motor.Begin_Dir, Motor.Vel );
-          //  UART_ETHprintf(UART_MSG,"x=%d y=%d z=%d\r\n",Motor.Pos[0], Motor.Pos[1], Motor.Pos[2]);
-            vTaskDelay( pdMS_TO_TICKS(10) );
+         while(Time2Goto(&Motor)==false) {
+            Abs_Pos    ( Motor.Pos        ) ;
+            Delta      ( &Motor           ) ;
+            vTaskDelay ( pdMS_TO_TICKS(10 ));
          }
       }
-//      UART_ETHprintf(UART_MSG,"goto\r\n");
+ //     UART_ETHprintf(UART_MSG,"goto\r\n");
       Goto(Motor.Target);
       while(Busy_Read()==0)
          vTaskDelay ( pdMS_TO_TICKS(10 ));

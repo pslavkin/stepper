@@ -9,17 +9,16 @@ typedef struct
    float    Total_Acc         ;
    float    Total_Dec         ;
    float    Distance          ;
-    int32_t Pos   [ NUM_AXES ];
-    int32_t Target[ NUM_AXES ];
-   uint32_t Delta [ NUM_AXES ];
-   uint32_t Dec_Step [ NUM_AXES ];
-   uint32_t Acc_Step [ NUM_AXES ];
-   uint8_t  Actual_Dir  [ NUM_AXES ];
-   uint8_t  Begin_Dir   [ NUM_AXES ];
+    int32_t Pos     [ NUM_AXES ];
+    int32_t Target  [ NUM_AXES ];
+   uint32_t Delta   [ NUM_AXES ];
+   uint32_t Dec_Step[ NUM_AXES ];
+   uint32_t Acc_Step[ NUM_AXES ];
+   uint8_t  Dir     [ NUM_AXES ];
    float    Speed   [ NUM_AXES ];
-   float    Vel   [ NUM_AXES ];
-   float    Acc   [ NUM_AXES ];
-   float    Dec   [ NUM_AXES ];
+   float    Vel     [ NUM_AXES ];
+   float    Acc     [ NUM_AXES ];
+   float    Dec     [ NUM_AXES ];
 } Motor_t;
 
 extern QueueHandle_t Moves_Queue;
