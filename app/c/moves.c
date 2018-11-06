@@ -134,16 +134,14 @@ int Cmd_Gcode_Ramps(struct tcp_pcb* tpcb, int argc, char *argv[])
 void Moves_Parser(void* nil)
 {
    Moves_Queue= xQueueCreate(MOVES_QUEUE_SIZE,sizeof(Motor_t));
-   GMotor.Total_Vel = 600;
-   GMotor.Total_Acc = 30000;
-   GMotor.Total_Dec = 30000;
+   GMotor.Total_Vel = 100;
+   GMotor.Total_Acc = 100;
+   GMotor.Total_Dec = 100;
    float Aux_Vel[NUM_AXES];
    Motor_t Motor;
    while(1) {
       while(xQueueReceive(Moves_Queue,&Motor,portMAX_DELAY)!=pdTRUE)
          ;
-      Motor.Acc_Step[0] = (128*Motor.Total_Vel*Motor.Total_Vel)/(2*Motor.Total_Acc); //sale de que Vf^2=V0^2+2*a*X
-      Motor.Dec_Step[0] = (128*Motor.Total_Vel*Motor.Total_Vel)/(2*Motor.Total_Dec)+Motor.Total_Vel*128*0.05;
 //      UART_ETHprintf(UART_MSG,"step to acc=%d dec=%d\r\n",Motor.Acc_Step[0],Motor.Dec_Step[0]);
 
       Abs_Pos    ( Motor.Pos );
@@ -155,6 +153,13 @@ void Moves_Parser(void* nil)
       Accel      ( &Motor    );
       Set_Acc    ( Motor.Acc );
       Set_Dec    ( Motor.Dec );
+      Get_Acc    ( Motor.Acc );
+      Get_Dec    ( Motor.Dec );
+      float Accel_Recalculated=sqrt(Motor.Acc[0]*Motor.Acc[0]+Motor.Acc[1]*Motor.Acc[1]+Motor.Acc[2]*Motor.Acc[2]);
+//      Motor.Acc_Step[0] = (128*Motor.Total_Vel*Motor.Total_Vel)/(2*Motor.Total_Acc); //sale de que Vf^2=V0^2+2*a*X
+//      Motor.Dec_Step[0] = (128*Motor.Total_Vel*Motor.Total_Vel)/(2*Motor.Total_Dec)+Motor.Total_Vel*128*0.05;
+      Motor.Acc_Step[0] = (128*Motor.Total_Vel*Motor.Total_Vel)/(2*Accel_Recalculated); //sale de que Vf^2=V0^2+2*a*X
+      Motor.Dec_Step[0] = (128*Motor.Total_Vel*Motor.Total_Vel)/(2*Accel_Recalculated)+Motor.Total_Vel*128*0.05;
   //    UART_ETHprintf(UART_MSG,"distance=%f\r\n",Motor.Distance);
 
       Aux_Vel[0]=Motor.Vel[0]+20;   //le pongo un poco mas de vel para que no limite

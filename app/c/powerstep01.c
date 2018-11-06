@@ -9,6 +9,22 @@
 #include "spi_phisical.h"
 
 //-------------------------------------------------------------
+void Get_Acc(float* V)
+{
+   uint32_t Ans[ NUM_AXES ];
+   uint8_t  i              ;
+   Get_Reg ( Acc_Reg,Ans,2 );
+   for(i=0;i<NUM_AXES;i++)
+      V[i]=Ans[i]/0.068719476736;
+}
+void Get_Dec(float* V)
+{
+   uint32_t Ans[ NUM_AXES ];
+   uint8_t  i              ;
+   Get_Reg ( Dec_Reg,Ans,2 );
+   for(i=0;i<NUM_AXES;i++)
+      V[i]=Ans[i]/0.068719476736;
+}
 void Set_Acc(float* V)
 {
    uint32_t Ans[ NUM_AXES ];

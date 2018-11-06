@@ -574,7 +574,6 @@ int Cmd_Min_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 }/*}}}*/
 int Cmd_Acc     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   uint32_t    Ans[ NUM_AXES ];
    float       V  [ NUM_AXES ];
    uint8_t     i              ;
    if(argc>1) {
@@ -583,16 +582,13 @@ int Cmd_Acc     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
       Set_Acc(V);
    }
    else {
-      Get_Reg ( Acc_Reg,Ans,2 );
-      for(i=0;i<NUM_AXES;i++)
-         V[i]=Ans[i]/0.068719476736;
+      Get_Acc(V);
       UART_ETHprintf(tpcb,"[step/seg]2= %f %f %f\r\n",V[0],V[1],V[2]);
    }
    return 0;
 }/*}}}*/
 int Cmd_Dec     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   uint32_t    Ans[ NUM_AXES ];
    float       V  [ NUM_AXES ];
    uint8_t     i              ;
    if(argc>1) {
@@ -601,9 +597,7 @@ int Cmd_Dec     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
       Set_Dec(V);
    }
    else {
-      Get_Reg ( Dec_Reg,Ans,2 );
-      for(i=0;i<NUM_AXES;i++)
-         V[i]=Ans[i]/0.068719476736;
+      Get_Dec(V);
       UART_ETHprintf(tpcb,"[step/seg]2= %f %f %f\r\n",V[0],V[1],V[2]);
    }
    return 0;
