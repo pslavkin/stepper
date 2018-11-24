@@ -198,10 +198,10 @@ void Send_App4Args ( uint8_t Cmd, char *argv[], uint8_t Len)
 void Init_Powerstep(struct tcp_pcb* tpcb)
 {
    uint32_t    V[ NUM_AXES ];
-   Set_Reg_Equal ( 9          , 50    ,1 );
-   Set_Reg_Equal ( 10         , 80    ,1 );
-   Set_Reg_Equal ( 11         , 80    ,1 );
-   Set_Reg_Equal ( 12         , 80    ,1 );
+   Set_Reg_Equal ( 9          , 30    ,1 );  //hold
+   Set_Reg_Equal ( 10         ,  80    ,1 ); //run para stepper de prueba 80, para cnc 150
+   Set_Reg_Equal ( 11         ,  80    ,1 ); //acc
+   Set_Reg_Equal ( 12         ,  80    ,1 ); //dec
 
    V[0]=0x2C0B; // uno genera el clk de salida de 16m desde su clk interno
    V[1]=0x2C0D; // y ekl otro recibe y regenera inviertido
