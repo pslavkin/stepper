@@ -4,6 +4,7 @@
 #include "task.h"
 #include "queue.h"
 #include "semphr.h"
+#include "opt.h"
 
 //-----------------------------------------------------------------
 QueueHandle_t Events_Queue;

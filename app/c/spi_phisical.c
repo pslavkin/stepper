@@ -95,11 +95,11 @@ void Send_Cmd2Spi(struct tcp_pcb* tpcb, Spi_Params* Params)
             Params->Data[n][i]=(uint8_t)Ans;
             UART_ETHprintf(DEBUG_MSG,"Ans=0x%02x\r\n",Params->Data[n][i]);
          }
-      if(Wait_Busy==true && i==(Params->Len)) {
-         while(Busy_Read()==0)
-            ;
-         Wait_Busy=false;
-      }
+//      if(Wait_Busy==true && i==(Params->Len)) {
+//         while(Busy_Read()==0)
+//            ;
+//         Wait_Busy=false;
+//      }
       Cs_Hi();
    }
    xSemaphoreGive(Busy_Sem);
@@ -195,22 +195,6 @@ void Send_App4Args ( uint8_t Cmd, char *argv[], uint8_t Len)
    Send_Data(Cmd,Options,V,Len);
 }
 //--------------------------------------------------------------------------------
-void Init_Powerstep(struct tcp_pcb* tpcb)
-{
-   uint32_t    V[ NUM_AXES ];
-   Set_Reg_Equal ( 9          , 30    ,1 );  //hold
-   Set_Reg_Equal ( 10         ,  80    ,1 ); //run para stepper de prueba 80, para cnc 150
-   Set_Reg_Equal ( 11         ,  80    ,1 ); //acc
-   Set_Reg_Equal ( 12         ,  80    ,1 ); //dec
-
-   V[0]=0x2C0B; // uno genera el clk de salida de 16m desde su clk interno
-   V[1]=0x2C0D; // y ekl otro recibe y regenera inviertido
-   V[2]=0x2C0D;
-   Set_Reg       ( Config_Reg    ,V      ,2 );
-   Set_Reg_Equal ( Dec_Reg       ,0x000A ,2 );
-   Set_Reg_Equal ( Acc_Reg       ,0x000A ,2 );
-   //Set_Reg_Equal ( Step_Mode_Reg ,0x00   ,1 );
-}
 void Toogle_Pulses(uint32_t Pulses)
 {
    uint32_t i;

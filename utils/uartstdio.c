@@ -370,7 +370,7 @@ void UARTStdioConfig(uint32_t ui32PortNum, uint32_t ui32Baud, uint32_t ui32SrcCl
     //
     // In buffered mode, we only allow a single instance to be opened.
     //
-    Uart_Studio_Semphr = xSemaphoreCreateCounting ( 10, 0 );
+    Uart_Studio_Semphr = xSemaphoreCreateCounting (UART_STUDIO_SEMPHR_SIZE, 0 );
     Print_Mutex = xSemaphoreCreateMutex();
     ASSERT(g_ui32Base == 0);
 #endif
@@ -486,8 +486,8 @@ UARTwrite(const char *pcBuf, uint32_t ui32Len)
         {
             if(!TX_BUFFER_FULL)
             {
-                g_pcUARTTxBuffer[g_ui32UARTTxWriteIndex] = '\r';
-                ADVANCE_TX_BUFFER_INDEX(g_ui32UARTTxWriteIndex);
+//                g_pcUARTTxBuffer[g_ui32UARTTxWriteIndex] = '\r';
+//                ADVANCE_TX_BUFFER_INDEX(g_ui32UARTTxWriteIndex);
             }
             else
             {
@@ -601,27 +601,18 @@ UARTgets(char *pcBuf, uint32_t ui32Len)
     uint32_t ui32Count = 0;
     int8_t cChar;
 
-    //
     // Check the arguments.
-    //
     ASSERT(pcBuf != 0);
     ASSERT(ui32Len != 0);
     ASSERT(g_ui32Base != 0);
 
-    //
     // Adjust the length back by 1 to leave space for the trailing
     // null terminator.
-    //
     ui32Len--;
-
-    //
     // Process characters until a newline is received.
-    //
     while(1)
     {
-        //
         // Read the next character from the receive buffer.
-        //
         if(!RX_BUFFER_EMPTY)
         {
             cChar = g_pcUARTRxBuffer[g_ui32UARTRxReadIndex];
@@ -632,167 +623,151 @@ UARTgets(char *pcBuf, uint32_t ui32Len)
             //
             if((cChar == '\r') || (cChar == '\n') || (cChar == 0x1b))
             {
-                //
                 // Stop processing the input and end the line.
-                //
                 break;
             }
-
-            //
             // Process the received character as long as we are not at the end
             // of the buffer.  If the end of the buffer has been reached then
             // all additional characters are ignored until a newline is
             // received.
-            //
             if(ui32Count < ui32Len)
             {
-                //
                 // Store the character in the caller supplied buffer.
-                //
                 pcBuf[ui32Count] = cChar;
-
-                //
                 // Increment the count of characters received.
-                //
                 ui32Count++;
             }
         }
     }
-
-    //
     // Add a null termination to the string.
-    //
     pcBuf[ui32Count] = 0;
-
-    //
     // Return the count of int8_ts in the buffer, not counting the trailing 0.
-    //
     return(ui32Count);
 #else
-    uint32_t ui32Count = 0;/*{{{*/
-    int8_t cChar;
-    static int8_t bLastWasCR = 0;
-
-    //
-    // Check the arguments.
-    //
-    ASSERT(pcBuf != 0);
-    ASSERT(ui32Len != 0);
-    ASSERT(g_ui32Base != 0);
-/*{{{*/
-    //}}}
-    // Adjust the length back by 1 to leave space for the trailing
-    // null terminator.
-    //
-    ui32Len--;
-
-    //
-    // Process characters until a newline is received.
-    //
-    while(1)
-    {
-        //
-        // Read the next character from the console.
-        //
-        cChar = MAP_UARTCharGet(g_ui32Base);
-
-        //
-        // See if the backspace key was pressed.
-        //
-        if(cChar == '\b')
-        {
-            //
-            // If there are any characters already in the buffer, then delete
-            // the last.
-            //
-            if(ui32Count)
-            {
-                //
-                // Rub out the previous character.
-                //
-                UARTwrite("\b \b", 3);
-
-                //
-                // Decrement the number of characters in the buffer.
-                //
-                ui32Count--;
-            }
-
-            //
-            // Skip ahead to read the next character.
-            //
-            continue;
-        }
-
-        //
-        // If this character is LF and last was CR, then just gobble up the
-        // character because the EOL processing was taken care of with the CR.
-        //
-        if((cChar == '\n') && bLastWasCR == 1)
-        {
-            bLastWasCR = 0;
-            continue;
-        }
-
-        //
-        // See if a newline or escape character was received.
-        //
-        if((cChar == '\r') || (cChar == '\n') || (cChar == 0x1b))
-        {
-            //
-            // If the character is a CR, then it may be followed by a LF which
-            // should be paired with the CR.  So remember that a CR was
-            // received.
-            //
-            if(cChar == '\r')
-            {
-                bLastWasCR = 1;
-            }
-
-            //
-            // Stop processing the input and end the line.
-            //
-            break;
-        }
-
-        //
-        // Process the received character as long as we are not at the end of
-        // the buffer.  If the end of the buffer has been reached then all
-        // additional characters are ignored until a newline is received.
-        //
-        if(ui32Count < ui32Len)
-        {
-            //
-            // Store the character in the caller supplied buffer.
-            //
-            pcBuf[ui32Count] = cChar;
-
-            //
-            // Increment the count of characters received.
-            //
-            ui32Count++;
-
-            //
-            // Reflect the character back to the user.
-            //
-            MAP_UARTCharPut(g_ui32Base, cChar);
-        }
-    }
-
-    //
-    // Add a null termination to the string.
-    //
-    pcBuf[ui32Count] = 0;
-
-    //
-    // Send a CRLF pair to the terminal to end the line.
-    //
-    UARTwrite("\r\n", 2);
-
-    //
-    // Return the count of int8_ts in the buffer, not counting the trailing 0.
-    //
-    return(ui32Count);/*}}}*/
+//    uint32_t ui32Count = 0;/*{{{*/
+//    int8_t cChar;
+//    static int8_t bLastWasCR = 0;
+//
+//    //
+//    // Check the arguments.
+//    //
+//    ASSERT(pcBuf != 0);
+//    ASSERT(ui32Len != 0);
+//    ASSERT(g_ui32Base != 0);
+///*{{{*/
+//    //}}}
+//    // Adjust the length back by 1 to leave space for the trailing
+//    // null terminator.
+//    //
+//    ui32Len--;
+//
+//    //
+//    // Process characters until a newline is received.
+//    //
+//    while(1)
+//    {
+//        //
+//        // Read the next character from the console.
+//        //
+//        cChar = MAP_UARTCharGet(g_ui32Base);
+//
+//        //
+//        // See if the backspace key was pressed.
+//        //
+////        if(cChar == '\b')
+////        {
+////            //
+////            // If there are any characters already in the buffer, then delete
+////            // the last.
+////            //
+////            if(ui32Count)
+////            {
+////                //
+////                // Rub out the previous character.
+////                //
+////                UARTwrite("\b \b", 3);
+////
+////                //
+////                // Decrement the number of characters in the buffer.
+////                //
+////                ui32Count--;
+////            }
+////
+////            //
+////            // Skip ahead to read the next character.
+////            //
+////            continue;
+////        }
+//
+//        //
+//        // If this character is LF and last was CR, then just gobble up the
+//        // character because the EOL processing was taken care of with the CR.
+//        //
+//        if((cChar == '\n') && bLastWasCR == 1)
+//        {
+//            bLastWasCR = 0;
+//            continue;
+//        }
+//
+//        //
+//        // See if a newline or escape character was received.
+//        //
+//        if((cChar == '\r') || (cChar == '\n') || (cChar == 0x1b))
+//        {
+//            //
+//            // If the character is a CR, then it may be followed by a LF which
+//            // should be paired with the CR.  So remember that a CR was
+//            // received.
+//            //
+//            if(cChar == '\r')
+//            {
+//                bLastWasCR = 1;
+//            }
+//
+//            //
+//            // Stop processing the input and end the line.
+//            //
+//            break;
+//        }
+//
+//        //
+//        // Process the received character as long as we are not at the end of
+//        // the buffer.  If the end of the buffer has been reached then all
+//        // additional characters are ignored until a newline is received.
+//        //
+//        if(ui32Count < ui32Len)
+//        {
+//            //
+//            // Store the character in the caller supplied buffer.
+//            //
+//            pcBuf[ui32Count] = cChar;
+//
+//            //
+//            // Increment the count of characters received.
+//            //
+//            ui32Count++;
+//
+//            //
+//            // Reflect the character back to the user.
+//            //
+//            MAP_UARTCharPut(g_ui32Base, cChar);
+//        }
+//    }
+//
+//    //
+//    // Add a null termination to the string.
+//    //
+//    pcBuf[ui32Count] = 0;
+//
+//    //
+//    // Send a CRLF pair to the terminal to end the line.
+//    //
+//    UARTwrite("\r\n", 2);
+//
+//    //
+//    // Return the count of int8_ts in the buffer, not counting the trailing 0.
+//    //
+//    return(ui32Count);/*}}}*/
 #endif
 }
 
@@ -1251,41 +1226,13 @@ void UARTStdioIntHandler(void)
             i32Char = MAP_UARTCharGetNonBlocking(g_ui32Base);
             cChar   = (unsigned char)(i32Char & 0xFF);
 
-            // If echo is ENABLED, we skip the various text filtering
-            if(!g_bDisableEcho)
-            {
-                // Handle backspace by erasing the last character 
-                if(cChar == '\b' || cChar == 127) //el 127 me lo manda picocom
-                {
-                    // If there are any characters already in the buffer
-                    if(!RX_BUFFER_EMPTY)
-                    {
-                        // Rub out the previous character on the terminal
-                        UARTwrite("\b \b", 3);
-                        // Decrement the number of characters in the buffer.
-                        if(g_ui32UARTRxWriteIndex == 0)
-                            g_ui32UARTRxWriteIndex = UART_RX_BUFFER_SIZE - 1;
-                        else
-                            g_ui32UARTRxWriteIndex--;
-                    }
-                    // Skip ahead to read the next character.
-                    continue;
-                }
-                // See if a newline or escape character was received.
-                if((cChar == '\r') || (cChar == '\n') || (cChar == 0x1b))
-                    // put a CR in the receive buffer as a marker 
-                    cChar = '\n';
-            }
             // If there is space in the receive buffer,
             if(!RX_BUFFER_FULL)
             {
                 // Store the new character in the receive buffer
                 g_pcUARTRxBuffer[g_ui32UARTRxWriteIndex] = cChar;
                 ADVANCE_RX_BUFFER_INDEX(g_ui32UARTRxWriteIndex);
-                // If echo is enabled, write the character to the transmit
-                if(!g_bDisableEcho)
-    //                UARTwrite((const char *)&cChar, 1);
-                if(cChar == '\n')
+                if(cChar == '\n' || cChar=='\r')
                    xSemaphoreGiveFromISR(Uart_Studio_Semphr,NULL);
             }
         }

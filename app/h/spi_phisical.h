@@ -34,6 +34,13 @@ enum Step01_Registers{
    Min_Speed_Reg = 0x08,
    Config_Reg    = 0x1A,
    Step_Mode_Reg = 0x16,
+   Gate1_Reg     = 0x18,
+   Gate2_Reg     = 0x19,
+   Fs_Spd        = 0x15,
+   Int_Speed     = 0x0D,
+   St_Slp        = 0x0E,
+   Fn_Slp_Acc    = 0x0F,
+   Fn_Slp_Dec    = 0x10,
 };
 
 typedef struct  {
@@ -41,32 +48,31 @@ typedef struct  {
    uint8_t Len;
 }Spi_Params;
 //------------------------------------------------------
-extern void    Init_Spi_Phisical ( void );
-extern void    Cs_Hi             ( void );
-extern void    Cs_Lo             ( void );
-extern void    Rst_Hi            ( void );
-extern void    Rst_Lo            ( void );
-extern bool    Busy_Read         ( void );
+void     Init_Spi_Phisical    ( void                                                 );
+void     Cs_Hi                ( void                                                 );
+void     Cs_Lo                ( void                                                 );
+void     Rst_Hi               ( void                                                 );
+void     Rst_Lo               ( void                                                 );
+bool     Busy_Read            ( void                                                 );
 // ------------------------------------------------------
-extern void       Send_Data2Spi ( void                                                 );
-void Get_Reg                    ( uint8_t Reg, uint32_t* Ans, uint8_t Len              );
-void Set_Reg                    ( uint8_t Reg, uint32_t* V , uint8_t Len               );
-void Get_App                    ( uint8_t Cmd, uint32_t* Ans, uint8_t Len              );
-void Get_Reg4Args               ( char** argv, uint32_t* Ans                           );
-void Set_Reg4Args               ( char** argv                                          );
-void Set_Reg_Equal              ( uint8_t Reg, uint32_t V,uint8_t Len                  );
-void Send_Data                  ( uint8_t Cmd, uint8_t* Option,uint32_t *V,uint8_t Len );
-void Send_App_Equal             ( uint8_t Cmd, uint8_t Option,uint32_t V,uint8_t Len   );
-void Send_App4Args_Option       ( uint8_t Cmd, char *argv[] ,uint8_t Len               );
-void Send_App4Args              ( uint8_t Cmd, char *argv[] ,uint8_t Len               );
+void     Send_Data2Spi        ( void                                                 );
+void     Get_Reg              ( uint8_t Reg, uint32_t* Ans, uint8_t Len              );
+void     Set_Reg              ( uint8_t Reg, uint32_t* V , uint8_t Len               );
+void     Get_App              ( uint8_t Cmd, uint32_t* Ans, uint8_t Len              );
+void     Get_Reg4Args         ( char** argv, uint32_t* Ans                           );
+void     Set_Reg4Args         ( char** argv                                          );
+void     Set_Reg_Equal        ( uint8_t Reg, uint32_t V,uint8_t Len                  );
+void     Send_Data            ( uint8_t Cmd, uint8_t* Option,uint32_t *V,uint8_t Len );
+void     Send_App_Equal       ( uint8_t Cmd, uint8_t Option,uint32_t V,uint8_t Len   );
+void     Send_App4Args_Option ( uint8_t Cmd, char *argv[] ,uint8_t Len               );
+void     Send_App4Args        ( uint8_t Cmd, char *argv[] ,uint8_t Len               );
 // ------------------------------------------------------
-extern void       Send_Cmd2Spi    ( struct tcp_pcb* tpcb ,Spi_Params* Params            );
-extern void       Toogle_Pulses   ( uint32_t Pulses                                     );
-extern void       Init_Powerstep  ( struct tcp_pcb* tpcb                                );
-extern void       Busy_Read_Task  ( void* nil                                           );
+void     Send_Cmd2Spi         ( struct tcp_pcb* tpcb ,Spi_Params* Params             );
+void     Toogle_Pulses        ( uint32_t Pulses                                      );
+void     Busy_Read_Task       ( void* nil                                            );
 // ------------------------------------------------------
-extern void       Set_Wait_Busy   ( void                                                );
-extern void       Unset_Wait_Busy ( void                                                );
+void     Set_Wait_Busy        ( void                                                 );
+void     Unset_Wait_Busy      ( void                                                 );
 
 
 #endif

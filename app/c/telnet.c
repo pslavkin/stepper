@@ -29,11 +29,11 @@ void Print_Slide(struct Gcode_Queue_Struct *D)
       for(;i<(sizeof(Slide)-1);i++)
          Slide[i]='.';
       Slide[i]='\0';
-//      UART_ETHprintf ( D->tpcb,"#%06d %12s| %s | %12s\r\n",
-//                        D->Id,
-//                        Actual_Cmd.Buff,
-//                        Slide,
-//                        D->Buff);
+      UART_ETHprintf ( D->tpcb,"#%06d %12s| %s | %12s\r\n",
+                        D->Id,
+                        Actual_Cmd.Buff,
+                        Slide,
+                        D->Buff);
 }
 
 err_t Rcv_Fn (void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
@@ -52,7 +52,7 @@ err_t Rcv_Fn (void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
             B->Id++;
             while(xQueueSend(Gcode_Queue,&D,portMAX_DELAY)!=pdTRUE)
                ;
-            Print_Slide(&D);
+            //Print_Slide(&D);
          }
          else
             break;

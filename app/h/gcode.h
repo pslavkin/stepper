@@ -1,8 +1,6 @@
 #ifndef  GCODE
 #define  GCODE
 
-#define GCODE_QUEUE_SIZE 20
-
 struct Gcode_Queue_Struct
 {
    uint8_t Buff[APP_INPUT_BUF_SIZE];
