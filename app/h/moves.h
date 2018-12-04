@@ -10,6 +10,9 @@ typedef struct
 {
    uint32_t Line_Number              ;
    uint8_t  Command                  ;
+   uint8_t  Run_Goto                ;
+   float    Gcode_Vel;
+   int16_t  Limited_Vel;
    float    Max_Vel      [ NUM_AXES ];
    float    Max_Acc      [ NUM_AXES ];
    float    Max_Dec      [ NUM_AXES ];
@@ -19,7 +22,7 @@ typedef struct
    float    Actual_Pos   [ NUM_AXES ];
     int32_t Target       [ NUM_AXES ];
    float    Actual_Target[ NUM_AXES ];
-   uint32_t Delta        [ NUM_AXES ];
+   int32_t Delta        [ NUM_AXES ];
    float    Actual_Delta [ NUM_AXES ];
    uint32_t Dec_Step     [ NUM_AXES ];
    uint32_t Acc_Step     [ NUM_AXES ];
@@ -28,8 +31,6 @@ typedef struct
    float    Vel          [ NUM_AXES ];
    float    Acc          [ NUM_AXES ];
    float    Dec          [ NUM_AXES ];
-   float    Scale        [ NUM_AXES ];
-   uint8_t  Goto         [ NUM_AXES ];
 } Motor_t                            ;
 
 extern QueueHandle_t Moves_Queue;
@@ -41,19 +42,20 @@ struct Moves_Queue_Struct {
 };
 
 
-int     Cmd_Gcode_GL          ( struct tcp_pcb* tpcb, int argc, char *argv[] );
-int     Cmd_Gcode_F           ( struct tcp_pcb* tpcb, int argc, char *argv[] );
-int     Cmd_Gcode_Print_Motor ( struct tcp_pcb* tpcb, int argc, char *argv[] );
-int     Cmd_Gcode_Ramps       ( struct tcp_pcb* tpcb, int argc, char *argv[] );
-int     Cmd_Get_Queue_Space   ( struct tcp_pcb* tpcb, int argc, char *argv[] );
-void    Print_Motor_t         ( Motor_t* M                                   );
-void    Set_Max_Vel           ( Motor_t* M,float Vel                         );
-void    Set_Acc_Dec_Ramp      ( Motor_t* M,float Acc, float Dec              );
-void    Clear_Goto            ( Motor_t* M                                   );
-int     Cmd_Halt_GCode_Queue  ( struct tcp_pcb* tpcb, int argc, char *argv[] );
-int     Cmd_Actual_GCode_Line ( struct tcp_pcb* tpcb, int argc, char *argv[] );
-int     Cmd_Kombo_Data        ( struct tcp_pcb* tpcb, int argc, char *argv[] );
-void Target2Actual_Target(Motor_t* M);
+int      Cmd_Gcode_GL          ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+int      Cmd_Gcode_F           ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+int      Cmd_Gcode_Print_Motor ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+int      Cmd_Gcode_Ramps       ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+int      Cmd_Get_Queue_Space   ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+void     Print_Motor_t         ( Motor_t* M                                   );
+void     Set_Max_Vel           ( Motor_t* M,float Vel                         );
+void     Set_Acc_Dec_Ramp      ( Motor_t* M,float Acc, float Dec              );
+int      Cmd_Halt_GCode_Queue  ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+int      Cmd_Actual_GCode_Line ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+int      Cmd_Kombo_Data        ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+int      Cmd_Limited_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+void     Target2Actual_Target  ( Motor_t* M                                   );
+void Limit_Max_Vel(Motor_t* M);
 
 #endif
 

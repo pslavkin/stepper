@@ -90,6 +90,7 @@ tCmdLineEntry Motor_Cmd_Table[] =
     { "speed"   ,Cmd_Speed             ,": actual speed"                                                                       },
     { "acc"     ,Cmd_Acc               ,": Acceleration"                                                                       },
     { "dec"     ,Cmd_Dec               ,": Decceleration"                                                                      },
+    { "ls"      ,Cmd_Limited_Speed     ,": Limited Speed"                                                                      },
     { "maxv"    ,Cmd_Max_Speed         ,": Maximum speed"                                                                      },
     { "minv"    ,Cmd_Min_Speed         ,": Minimim speed"                                                                      },
     { "wait"    ,Cmd_Wait              ,": wait"                                                                               },
