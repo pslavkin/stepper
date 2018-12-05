@@ -10,7 +10,7 @@
 #include "utils/uartstdio.h"
 #include "utils/ustdlib.h"
 
-Motor_t QMotor         = {0}; // Queue motor
+Motor_t QMotor         = {.Command=2,0}; // Queue motor
 Motor_t AMotor;               // es la que se esta ejecutando en cada instante..
 uint16_t Limited_Speed = 10;  // en  mm/seg
 uint16_t uStep2mm[NUM_AXES]={X_SCALE,Y_SCALE,Z_SCALE};
@@ -58,7 +58,7 @@ void Acc_Dec_Steps(Motor_t* M)
    uint8_t i;
    for(i=0;i<NUM_AXES;i++) {
       M->Acc_Step[i]= (MICROSTEP*M->Vel[i]*M->Vel[i])/(2*M->Acc[i]);
-      M->Dec_Step[i]= (MICROSTEP*M->Vel[i]*M->Vel[i])/(2*M->Dec[i])+(M->Vel[i]*MICROSTEP*0.05);
+      M->Dec_Step[i]= (MICROSTEP*M->Vel[i]*M->Vel[i])/(2*M->Dec[i])+(M->Vel[i]*MICROSTEP*0.04);
 //      UART_ETHprintf(UART_MSG,"step to acc=%d dec=%d\n",M->Acc_Step[i],M->Dec_Step[i]);
    }
 }
@@ -68,7 +68,7 @@ bool Time2Goto(Motor_t* M)
    uint8_t i;
    bool Ans=false;
    for(i=0;i<NUM_AXES;i++) {
-      if(M->Delta[i]<0 || M->Dec_Step[i]>=M->Delta[i]) {
+      if(M->Delta[i]<0 || M->Dec_Step[i]>M->Delta[i]) {
          Ans=true;
          break;
       }
@@ -78,24 +78,24 @@ bool Time2Goto(Motor_t* M)
 void Run_Or_Goto(Motor_t* M)
 {
    uint8_t i;
+   uint8_t Any_Delta=0;
    M->Run_Goto=true; //true es run
    for(i=0;i<NUM_AXES ;i++) {
       if((M->Acc_Step[i]+M->Dec_Step[i])>M->Delta[i]) {
          M->Run_Goto=false;
       }
-//      UART_ETHprintf(UART_MSG,"acc=%d dec=%d delta=%d run=%d \n",M->Acc_Step[i],M->Dec_Step[i],M->Delta[i],M->Run_Goto);
+      Any_Delta+=(M->Delta[i]>0);
    }
+   M->Run_Goto=M->Run_Goto && (Any_Delta>0);
+
+//      UART_ETHprintf(UART_MSG,"acc=%d dec=%d delta=%d run=%d \n",M->Acc_Step[i],M->Dec_Step[i],M->Delta[i],M->Run_Goto);
 }
 void Distance(Motor_t* M)
 {
-   M->Distance=sqrt((uint64_t)M->Delta[0]*M->Delta[0]+
-                    (uint64_t)M->Delta[1]*M->Delta[1]+
-                    (uint64_t)M->Delta[2]*M->Delta[2]);
    M->Actual_Distance=sqrt(M->Actual_Delta[0]*M->Actual_Delta[0]+
                            M->Actual_Delta[1]*M->Actual_Delta[1]+
                            M->Actual_Delta[2]*M->Actual_Delta[2]);
 }
-
 
 void Vel(Motor_t* M)
 {
@@ -104,7 +104,7 @@ void Vel(Motor_t* M)
       if(M->Delta[i]==0)
          M->Vel[i]=0;
       else {
-         M->Vel[i]=(float)M->Actual_Delta[i]*(M->Max_Vel[i]/M->Actual_Distance);
+         M->Vel[i]=((float)M->Actual_Delta[i]*M->Max_Vel[i])/M->Actual_Distance;
          if(M->Vel[i]<0.015) M->Vel[i]=0.015;
       }
    }
@@ -115,10 +115,10 @@ void Accel(Motor_t* M)
    uint32_t Acc_Integer;
    for(i=0;i<NUM_AXES;i++) {
       M->Acc[i]=M->Vel[i]*((Acc_Ramp*uStep2mm[i]/MICROSTEP)/M->Max_Vel[i]);
-      Acc_Integer=M->Acc[i]/14.5519152284+1;
-      M->Acc[i]=Acc_Integer*14.5619152284;
+      Acc_Integer=M->Acc[i]/14.5519152284+1; //paso a entoreo porque la aceleracion tiene un ste pde 14.55
+      M->Acc[i]=Acc_Integer*14.5619152284; //y vuelvo a corregir pero un poquito pasado para que redonde hacia arriba
       M->Dec[i]=M->Vel[i]*((Dec_Ramp*uStep2mm[i]/MICROSTEP)/M->Max_Vel[i]);
-      Acc_Integer=M->Dec[i]/14.5519152284+1;
+      Acc_Integer=M->Dec[i]/14.5519152284+1; //lomismo que para accel
       M->Dec[i]=Acc_Integer*14.5619152284;
 //      UART_ETHprintf(UART_MSG,"Acc=%f Dec=%f\n",M->Acc[i],M->Dec[i]);
    }
@@ -145,6 +145,7 @@ int Cmd_Get_Queue_Space(struct tcp_pcb* tpcb, int argc, char *argv[])
    AMotor.Target[2] = AMotor.Pos[2];
    Target2Actual_Target ( &AMotor ) ;   // y tambien la actual posicion (es es en mm)
    AMotor.Line_Number = 0;
+   AMotor.Command = 2;
    QMotor             = AMotor       ;  // y con esto sincronizo la cola de comandos con el motor
    return 0;
 }
@@ -185,6 +186,8 @@ int Cmd_Gcode_GL(struct tcp_pcb* tpcb, int argc, char *argv[])
 {
    uint8_t i;
    bool Change=false;
+   float    Aux_Vel;
+   bool Remember2Restore=false;
    QMotor.Pos[0]        = QMotor.Target[0];
    QMotor.Pos[1]        = QMotor.Target[1];
    QMotor.Pos[2]        = QMotor.Target[2];
@@ -227,15 +230,34 @@ int Cmd_Gcode_GL(struct tcp_pcb* tpcb, int argc, char *argv[])
       Dir           ( &QMotor );
       Delta         ( &QMotor );
       Distance      ( &QMotor );
-      Limit_Max_Vel ( &QMotor );
-      Vel           ( &QMotor );
-      Accel         ( &QMotor );
-      Acc_Dec_Steps ( &QMotor );
-      Run_Or_Goto   ( &QMotor );
-      xQueueSend(Moves_Queue,&QMotor,portMAX_DELAY);
+
+      for(i=0;i<20;i++) {
+      //   UART_ETHprintf(UART_MSG,"gcode vel=%f iteracion=%d\n",QMotor.Gcode_Vel,i);
+         Limit_Max_Vel ( &QMotor );
+         Vel           ( &QMotor );
+         Accel         ( &QMotor );
+         Acc_Dec_Steps ( &QMotor );
+         Run_Or_Goto   ( &QMotor );
+
+         if(QMotor.Run_Goto==true || QMotor.Gcode_Vel<1) {
+        //    UART_ETHprintf(UART_MSG,"salto break\n");
+            break;
+         }
+         else {
+            if(Remember2Restore==false) {
+               Remember2Restore=true;
+               Aux_Vel=QMotor.Gcode_Vel;
+            }
+            Set_Max_Vel(&QMotor,QMotor.Gcode_Vel/2);
+         //   UART_ETHprintf(UART_MSG,"reduzco a mitad gcode\n");
+         }
+      }
    }
+   xQueueSend(Moves_Queue,&QMotor,portMAX_DELAY);
+   if(Remember2Restore==true)
+      Set_Max_Vel(&QMotor,Aux_Vel);
    UART_ETHprintf(tpcb,"ok\n");
-  return 0;
+   return 0;
 }
 void Limit_Max_Vel(Motor_t* M)
 {
@@ -265,7 +287,6 @@ void Print_Motor_t(Motor_t* M)
             "DeltaX=%d "
             "DeltaY=%d "
             "DeltaZ=%d \n"
-            "Distance=%f \n"
             "Max VelX=%f "
             "Max VelY=%f "
             "Max VelZ=%f \n"
@@ -297,7 +318,6 @@ void Print_Motor_t(Motor_t* M)
             M->Delta[0],
             M->Delta[1],
             M->Delta[2],
-            M->Distance,
             M->Max_Vel[0],
             M->Max_Vel[1],
             M->Max_Vel[2],
@@ -329,6 +349,7 @@ int Cmd_Gcode_Ramps(struct tcp_pcb* tpcb, int argc, char *argv[])
       Acc_Ramp=ustrtof ( argv[1],NULL );
       Dec_Ramp=ustrtof ( argv[2],NULL );
    }
+   else
       UART_ETHprintf(UART_MSG,"Ramps Acc=%f Dec=%f\n",Acc_Ramp,Dec_Ramp);
    return 0;
 }

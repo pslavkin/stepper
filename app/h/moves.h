@@ -16,7 +16,7 @@ typedef struct
    float    Max_Vel      [ NUM_AXES ];
    float    Max_Acc      [ NUM_AXES ];
    float    Max_Dec      [ NUM_AXES ];
-   float    Distance                 ;
+ //  float    Distance                 ;
    float    Actual_Distance          ;
     int32_t Pos          [ NUM_AXES ];
    float    Actual_Pos   [ NUM_AXES ];
