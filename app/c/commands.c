@@ -625,20 +625,17 @@ void Init_Uart0(void)
 
 void User_Commands_Task(void* nil)
 {
-//   Cmd_Welcome ( UART_MSG ,0 ,NULL );
-//   Cmd_Help    ( UART_MSG ,0 ,NULL );
    uint32_t Uart_Id=0;
+   struct Gcode_Queue_Struct D;
 
    while(1) {
-      xSemaphoreTake(Uart_Studio_Semphr,portMAX_DELAY);
-      {
-         struct Gcode_Queue_Struct D;
-         UARTgets ( (char*)D.Buff ,APP_INPUT_BUF_SIZE );
-         D.tpcb = UART_MSG;
-         D.Id   = Uart_Id;
-         Uart_Id++;
-         xQueueSend(Gcode_Queue,&D,portMAX_DELAY);
-//         Print_Slide(&D);
+      uint8_t Index=0;
+      while ( UARTgets ( D.Buff ,APP_INPUT_BUF_SIZE-1,&Index )==false) {
+         vTaskDelay(pdMS_TO_TICKS(50));
       }
+      D.tpcb = UART_MSG;
+      D.Id   = Uart_Id;
+      Uart_Id++;
+      xQueueSend(Gcode_Queue,&D,portMAX_DELAY);
    }
 }

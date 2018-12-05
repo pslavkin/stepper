@@ -71,7 +71,7 @@ extern SemaphoreHandle_t Print_Mutex;
 
 extern void UARTStdioConfig   ( uint32_t ui32Port, uint32_t ui32Baud,
                             uint32_t ui32SrcClock                              );
-extern int  UARTgets          ( char *pcBuf, uint32_t ui32Len                  );
+bool UARTgets(uint8_t *pcBuf, uint8_t Max_Length, uint8_t* Index);
 extern unsigned char UARTgetc ( void                                           );
 extern void UARTprintf(const char *pcString, ...);
 extern void UART_ETHprintf    ( struct tcp_pcb* tpcb,const char *pcString, ... );

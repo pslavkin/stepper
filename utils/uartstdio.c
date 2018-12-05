@@ -370,7 +370,6 @@ void UARTStdioConfig(uint32_t ui32PortNum, uint32_t ui32Baud, uint32_t ui32SrcCl
     //
     // In buffered mode, we only allow a single instance to be opened.
     //
-    Uart_Studio_Semphr = xSemaphoreCreateCounting (UART_STUDIO_SEMPHR_SIZE, 0 );
     Print_Mutex = xSemaphoreCreateMutex();
     ASSERT(g_ui32Base == 0);
 #endif
@@ -594,48 +593,27 @@ UARTwrite(const char *pcBuf, uint32_t ui32Len)
 //! the trailing 0.
 //
 //*****************************************************************************
-int
-UARTgets(char *pcBuf, uint32_t ui32Len)
+bool UARTgets(uint8_t *pcBuf, uint8_t Max_Length, uint8_t* Index)
 {
-    uint32_t ui32Count = 0;
     int8_t cChar;
-    // Adjust the length back by 1 to leave space for the trailing
-    // null terminator.
-    ui32Len--;
-    // Process characters until a newline is received.
-    while(1)
-    {
-        // Read the next character from the receive buffer.
-        if(!RX_BUFFER_EMPTY)
-        {
-            cChar = g_pcUARTRxBuffer[g_ui32UARTRxReadIndex];
-            ADVANCE_RX_BUFFER_INDEX(g_ui32UARTRxReadIndex);
+    bool Ans      = false;
 
-            //
-            // See if a newline or escape character was received.
-            //
-            if((cChar == '\r') || (cChar == '\n') || (cChar == 0x1b))
-            {
-                // Stop processing the input and end the line.
-                break;
-            }
-            // Process the received character as long as we are not at the end
-            // of the buffer.  If the end of the buffer has been reached then
-            // all additional characters are ignored until a newline is
-            // received.
-            if(ui32Count < ui32Len)
-            {
-                // Store the character in the caller supplied buffer.
-                pcBuf[ui32Count] = cChar;
-                // Increment the count of characters received.
-                ui32Count++;
-            }
-        }
+    while(!RX_BUFFER_EMPTY) {
+       cChar = g_pcUARTRxBuffer[g_ui32UARTRxReadIndex];
+       ADVANCE_RX_BUFFER_INDEX(g_ui32UARTRxReadIndex);
+
+       if((cChar == '\r') || (cChar == '\n') || (cChar == 0x1b)) {
+          Ans=true;
+          break;
+       }
+       if(*Index < Max_Length)
+       {
+          pcBuf[*Index] = cChar;
+          (*Index)++;
+       }
     }
-    // Add a null termination to the string.
-    pcBuf[ui32Count] = 0;
-    // Return the count of int8_ts in the buffer, not counting the trailing 0.
-    return(ui32Count);
+    pcBuf[*Index] = 0;
+    return(Ans);
 }
 
 //*****************************************************************************
@@ -736,30 +714,30 @@ UARTgetc(void)
  **********************************************************************************************/
 void strrev (char *str)
 {
-	unsigned char temp, len=0, i=0;
+   unsigned char temp, len=0, i=0;
 
-	if( str == '\0' || !(*str) )    // If str is NULL or empty, do nothing
-	return;
+   if( str == '\0' || !(*str) )    // If str is NULL or empty, do nothing
+   return;
 
-	while(str[len] != '\0')
-	{
-		len++;
-	}
-	len=len-1;
+   while(str[len] != '\0')
+   {
+      len++;
+   }
+   len=len-1;
 
-	// Swap the characters
-	while(i < len)
-	{
-		temp = str[i];
-		str[i] = str[len];
-		str[len] = temp;
-		i++;
-		len--;
-	}
+   // Swap the characters
+   while(i < len)
+   {
+      temp = str[i];
+      str[i] = str[len];
+      str[len] = temp;
+      i++;
+      len--;
+   }
 }
 void itoaa(unsigned long num, char *arr, unsigned char base)
 {
-	unsigned char i=0,rem=0;
+   unsigned char i=0,rem=0;
 
     // Handle 0 explicitly, otherwise empty string is printed for 0
     if (num == 0)
@@ -775,7 +753,7 @@ void itoaa(unsigned long num, char *arr, unsigned char base)
         arr[i++] = (rem > 9)? (rem-10) + 'A' : rem + '0';
         num = num/base;
     }
-    arr[i] = '\0'; 	// Append string terminator
+    arr[i] = '\0';   // Append string terminator
     strrev(arr);        // Reverses the string
 }
 //
@@ -1099,8 +1077,8 @@ void UARTStdioIntHandler(void)
                 // Store the new character in the receive buffer
                 g_pcUARTRxBuffer[g_ui32UARTRxWriteIndex] = cChar;
                 ADVANCE_RX_BUFFER_INDEX(g_ui32UARTRxWriteIndex);
-                if(cChar == '\n' || cChar=='\r')
-                   xSemaphoreGiveFromISR(Uart_Studio_Semphr,NULL);
+//                if(cChar == '\n' || cChar=='\r')
+//                   xSemaphoreGiveFromISR(Uart_Studio_Semphr,NULL);
             }
         }
         // If we wrote anything to the transmit buffer, make sure it actually

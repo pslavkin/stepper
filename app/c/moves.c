@@ -15,6 +15,7 @@ Motor_t AMotor;               // es la que se esta ejecutando en cada instante..
 uint16_t Limited_Speed = 10;  // en  mm/seg
 uint16_t uStep2mm[NUM_AXES]={X_SCALE,Y_SCALE,Z_SCALE};
 float Acc_Ramp=1000, Dec_Ramp=1000;
+uint32_t Waiting_Line=0;
 
 bool Stop_Now=false;
 QueueHandle_t Moves_Queue;
@@ -58,7 +59,7 @@ void Acc_Dec_Steps(Motor_t* M)
    uint8_t i;
    for(i=0;i<NUM_AXES;i++) {
       M->Acc_Step[i]= (MICROSTEP*M->Vel[i]*M->Vel[i])/(2*M->Acc[i]);
-      M->Dec_Step[i]= (MICROSTEP*M->Vel[i]*M->Vel[i])/(2*M->Dec[i])+(M->Vel[i]*MICROSTEP*0.04);
+      M->Dec_Step[i]= (MICROSTEP*M->Vel[i]*M->Vel[i])/(2*M->Dec[i])+(M->Vel[i]*MICROSTEP*0.05);
 //      UART_ETHprintf(UART_MSG,"step to acc=%d dec=%d\n",M->Acc_Step[i],M->Dec_Step[i]);
    }
 }
@@ -145,7 +146,8 @@ int Cmd_Get_Queue_Space(struct tcp_pcb* tpcb, int argc, char *argv[])
    AMotor.Target[2] = AMotor.Pos[2];
    Target2Actual_Target ( &AMotor ) ;   // y tambien la actual posicion (es es en mm)
    AMotor.Line_Number = 0;
-   AMotor.Command = 2;
+   Waiting_Line       = 0;
+   AMotor.Command     = 2;
    QMotor             = AMotor       ;  // y con esto sincronizo la cola de comandos con el motor
    return 0;
 }
@@ -169,11 +171,16 @@ int Cmd_Limited_Speed(struct tcp_pcb* tpcb, int argc, char *argv[])
    float    V  [ NUM_AXES ];
    Abs_Pos ( Pos );
    Speed   ( V   );
-   UART_ETHprintf(tpcb,"%d %d %d %f %f %f %d %d\n",
+   UART_ETHprintf(tpcb,"%d %d %d %f %f %f %d %d %d %f %f %d\n",
          Pos[ 0 ],Pos[ 1 ],Pos[ 2 ],
          V  [ 0 ],V  [ 1 ],V  [ 2 ],
          uxQueueSpacesAvailable(Moves_Queue),
-         AMotor.Line_Number);
+         AMotor.Line_Number,
+         Waiting_Line,
+         Acc_Ramp,
+         Dec_Ramp,
+         Limited_Speed
+         );
    return 0;
 }
 int Cmd_Gcode_Print_Motor(struct tcp_pcb* tpcb, int argc, char *argv[])
@@ -196,12 +203,15 @@ int Cmd_Gcode_GL(struct tcp_pcb* tpcb, int argc, char *argv[])
    QMotor.Actual_Pos[2] = QMotor.Actual_Target[2];
 //   QMotor.Command=2; //comando invalido
 
-
    for(i=1;i<argc;i++) {
       switch(argv[i][0]) {
          case 'N':
-            QMotor.Line_Number=atoi(argv[i]+1);
-            Change=true;
+            if(atoi(argv[i]+1)==(Waiting_Line+1)) {
+               Waiting_Line++;
+               QMotor.Line_Number=Waiting_Line;
+               Change=true;
+            }
+            else return 0;
             break;
          case 'G':
             QMotor.Command=atoi(argv[i]+1);
@@ -226,13 +236,11 @@ int Cmd_Gcode_GL(struct tcp_pcb* tpcb, int argc, char *argv[])
       }
    }
    if(Change) {
-      //Print_Motor_t(QMotor);
       Dir           ( &QMotor );
       Delta         ( &QMotor );
       Distance      ( &QMotor );
 
-      for(i=0;i<20;i++) {
-      //   UART_ETHprintf(UART_MSG,"gcode vel=%f iteracion=%d\n",QMotor.Gcode_Vel,i);
+      for(i=0;i< 1;i++) {
          Limit_Max_Vel ( &QMotor );
          Vel           ( &QMotor );
          Accel         ( &QMotor );
@@ -240,7 +248,6 @@ int Cmd_Gcode_GL(struct tcp_pcb* tpcb, int argc, char *argv[])
          Run_Or_Goto   ( &QMotor );
 
          if(QMotor.Run_Goto==true || QMotor.Gcode_Vel<1) {
-        //    UART_ETHprintf(UART_MSG,"salto break\n");
             break;
          }
          else {
@@ -249,14 +256,12 @@ int Cmd_Gcode_GL(struct tcp_pcb* tpcb, int argc, char *argv[])
                Aux_Vel=QMotor.Gcode_Vel;
             }
             Set_Max_Vel(&QMotor,QMotor.Gcode_Vel/2);
-         //   UART_ETHprintf(UART_MSG,"reduzco a mitad gcode\n");
          }
       }
    }
    xQueueSend(Moves_Queue,&QMotor,portMAX_DELAY);
    if(Remember2Restore==true)
       Set_Max_Vel(&QMotor,Aux_Vel);
-   UART_ETHprintf(tpcb,"ok\n");
    return 0;
 }
 void Limit_Max_Vel(Motor_t* M)

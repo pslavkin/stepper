@@ -4,13 +4,12 @@
 
 #define APP_INPUT_BUF_SIZE      64
 #define UART_BUFFERED
-#define UART_RX_BUFFER_SIZE     512
+#define UART_RX_BUFFER_SIZE     256
 #define UART_TX_BUFFER_SIZE     2048
 
 #define GCODE_QUEUE_SIZE        20
 #define MOVES_QUEUE_SIZE        18
 #define MAX_EVENTS              10
-#define UART_STUDIO_SEMPHR_SIZE 100
 #define SSI_BIT_RATE            1000000                                 //esta en 10k y podria llegar a 5Mb
 
 #define USR_FLASH_START         0x00020000                          //donde te plazca que no pise codigo. y que este alineado a 4
