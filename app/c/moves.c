@@ -58,8 +58,8 @@ void Acc_Dec_Steps(Motor_t* M)
 {
    uint8_t i;
    for(i=0;i<NUM_AXES;i++) {
-      M->Acc_Step[i]= (MICROSTEP*M->Vel[i]*M->Vel[i])/(2*M->Acc[i]);
-      M->Dec_Step[i]= (MICROSTEP*M->Vel[i]*M->Vel[i])/(2*M->Dec[i])+(M->Vel[i]*MICROSTEP*0.05);
+      M->Acc_Step[i]= ((M->Vel[i]*M->Vel[i])/M->Acc[i])*((float)(MICROSTEP/2));
+      M->Dec_Step[i]= ((M->Vel[i]*M->Vel[i])/M->Dec[i])*((float)(MICROSTEP/2))+(M->Vel[i]*MICROSTEP*0.04);
 //      UART_ETHprintf(UART_MSG,"step to acc=%d dec=%d\n",M->Acc_Step[i],M->Dec_Step[i]);
    }
 }
@@ -82,12 +82,13 @@ void Run_Or_Goto(Motor_t* M)
    uint8_t Any_Delta=0;
    M->Run_Goto=true; //true es run
    for(i=0;i<NUM_AXES ;i++) {
-      if((M->Acc_Step[i]+M->Dec_Step[i])>M->Delta[i]) {
+      if((M->Acc_Step[i]+M->Dec_Step[i]-(M->Vel[i]*MICROSTEP*0.02))>M->Delta[i]) {
          M->Run_Goto=false;
       }
-      Any_Delta+=(M->Delta[i]>0);
+      Any_Delta+=(M->Delta[i]>0)?1:0;
    }
-   M->Run_Goto=M->Run_Goto && (Any_Delta>0);
+   M->Run_Goto=(M->Run_Goto) && (Any_Delta>0);
+//   return M->Run_Goto;
 
 //      UART_ETHprintf(UART_MSG,"acc=%d dec=%d delta=%d run=%d \n",M->Acc_Step[i],M->Dec_Step[i],M->Delta[i],M->Run_Goto);
 }
@@ -114,6 +115,7 @@ void Accel(Motor_t* M)
 {
    uint8_t i;
    uint32_t Acc_Integer;
+   //TODO:  si guardo el ultimo paramtro F limpio como vel maxim, el calculo de la aceleracion por canal es mucho mas facil porque sino estoy multiplicando y dividiendo varias veces por step2mm y microstep..
    for(i=0;i<NUM_AXES;i++) {
       M->Acc[i]=M->Vel[i]*((Acc_Ramp*uStep2mm[i]/MICROSTEP)/M->Max_Vel[i]);
       Acc_Integer=M->Acc[i]/14.5519152284+1; //paso a entoreo porque la aceleracion tiene un ste pde 14.55
@@ -193,15 +195,12 @@ int Cmd_Gcode_GL(struct tcp_pcb* tpcb, int argc, char *argv[])
 {
    uint8_t i;
    bool Change=false;
-   float    Aux_Vel;
-   bool Remember2Restore=false;
    QMotor.Pos[0]        = QMotor.Target[0];
    QMotor.Pos[1]        = QMotor.Target[1];
    QMotor.Pos[2]        = QMotor.Target[2];
    QMotor.Actual_Pos[0] = QMotor.Actual_Target[0];
    QMotor.Actual_Pos[1] = QMotor.Actual_Target[1];
    QMotor.Actual_Pos[2] = QMotor.Actual_Target[2];
-//   QMotor.Command=2; //comando invalido
 
    for(i=1;i<argc;i++) {
       switch(argv[i][0]) {
@@ -239,29 +238,13 @@ int Cmd_Gcode_GL(struct tcp_pcb* tpcb, int argc, char *argv[])
       Dir           ( &QMotor );
       Delta         ( &QMotor );
       Distance      ( &QMotor );
-
-      for(i=0;i< 1;i++) {
-         Limit_Max_Vel ( &QMotor );
-         Vel           ( &QMotor );
-         Accel         ( &QMotor );
-         Acc_Dec_Steps ( &QMotor );
-         Run_Or_Goto   ( &QMotor );
-
-         if(QMotor.Run_Goto==true || QMotor.Gcode_Vel<1) {
-            break;
-         }
-         else {
-            if(Remember2Restore==false) {
-               Remember2Restore=true;
-               Aux_Vel=QMotor.Gcode_Vel;
-            }
-            Set_Max_Vel(&QMotor,QMotor.Gcode_Vel/2);
-         }
-      }
+      Limit_Max_Vel ( &QMotor );
+      Vel           ( &QMotor );
+      Accel         ( &QMotor );
+      Acc_Dec_Steps ( &QMotor );
+      Run_Or_Goto   ( &QMotor );
    }
    xQueueSend(Moves_Queue,&QMotor,portMAX_DELAY);
-   if(Remember2Restore==true)
-      Set_Max_Vel(&QMotor,Aux_Vel);
    return 0;
 }
 void Limit_Max_Vel(Motor_t* M)
@@ -396,6 +379,7 @@ begin:xQueueReceive(Moves_Queue,&AMotor,portMAX_DELAY);
 
          if(AMotor.Run_Goto==true) {
             Run     ( AMotor.Dir, AMotor.Vel );
+            vTaskDelay ( pdMS_TO_TICKS(20 ));
             while(Busy_Read()==0) {
                if(Stop_Now) {
                   Stop_Now=false;
@@ -403,17 +387,22 @@ begin:xQueueReceive(Moves_Queue,&AMotor,portMAX_DELAY);
                }
                vTaskDelay ( pdMS_TO_TICKS(20 ));
             }
+            Abs_Pos    ( AMotor.Pos       ) ;
+            Delta      ( &AMotor          ) ;
             while(Time2Goto(&AMotor)==false) {
+               vTaskDelay ( pdMS_TO_TICKS(20 ));
                Abs_Pos    ( AMotor.Pos       ) ;
                Delta      ( &AMotor          ) ;
-               vTaskDelay ( pdMS_TO_TICKS(20 ));
                if(Stop_Now) {
                   Stop_Now=false;
                   goto begin;
                }
             }
+            Run  ( AMotor.Dir, AMotor.Vel ); //que hace aca? buena pregunta.. es el bendito bug
+            while(Busy_Read()==0)
+               ;
          }
-         Goto(AMotor.Target);
+         Goto ( AMotor.Target          );
       }
    }
 }

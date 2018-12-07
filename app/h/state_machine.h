@@ -25,6 +25,7 @@ void           State_Machine ( void* nil                                    ); /
 const State**  Empty_Sm      ( void                                         );
 void           Soft_Reset    ( void                                         );
 extern void    Delay_Useg    ( uint32_t d                                   );
+void Delay_0_25Useg(uint32_t d);
 //------------------------------------------------------------------
 #define  Empty_State_Machine     ((const State**)0x00000000)
 

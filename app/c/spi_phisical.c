@@ -15,6 +15,7 @@
 #include "state_machine.h"
 #include "utils/lwiplib.h"
 #include <stdlib.h>
+#include <string.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -80,7 +81,7 @@ void  Init_Spi_Phisical (void)
     Pulse_Hi();
 }
 //-------------------------------------------------------------
-void Send_Cmd2Spi(struct tcp_pcb* tpcb, Spi_Params* Params)
+void Send_Cmd2Spi(Spi_Params* Params)
 {
    uint32_t Ans;
    uint8_t i;
@@ -90,17 +91,11 @@ void Send_Cmd2Spi(struct tcp_pcb* tpcb, Spi_Params* Params)
       Cs_Lo();
          for(n=NUM_AXES-1;n>=0;n--) {
             MAP_SSIDataPut(SSI2_BASE, Params->Data[n][i]);
-            UART_ETHprintf(DEBUG_MSG, "Command=0x%02x -",Params->Data[n][i]);
             MAP_SSIDataGet(SSI2_BASE,&Ans);
             Params->Data[n][i]=(uint8_t)Ans;
-            UART_ETHprintf(DEBUG_MSG,"Ans=0x%02x\r\n",Params->Data[n][i]);
          }
-//      if(Wait_Busy==true && i==(Params->Len)) {
-//         while(Busy_Read()==0)
-//            ;
-//         Wait_Busy=false;
-//      }
       Cs_Hi();
+      Delay_0_25Useg(1); //hay que esperar 650nseg antes de bajar de nuevo el CS.. lo medi y esta oka con este delay...
    }
    xSemaphoreGive(Busy_Sem);
 }
@@ -108,10 +103,14 @@ void Send_Cmd2Spi(struct tcp_pcb* tpcb, Spi_Params* Params)
 void Get_Data(uint8_t Reg, uint8_t Option,uint32_t* Ans, uint8_t Len)
 {
    Spi_Params Params;
+   uint8_t i,j;
+   for(i=0;i<NUM_AXES;i++)
+      for(j=0;j<4;j++)
+         Params.Data[i][j]=0;
    Params.Len=Len;
    Cmd2Params   ( &Params   ,Reg|Option );
-   Send_Cmd2Spi ( DEBUG_MSG ,&Params           );
-   Params2Value ( &Params   ,Ans               );
+   Send_Cmd2Spi ( &Params               );
+   Params2Value ( &Params   ,Ans        );
 }
 void Send_Data(uint8_t Cmd, uint8_t* Option,uint32_t *V,uint8_t Len)
 {
@@ -119,7 +118,7 @@ void Send_Data(uint8_t Cmd, uint8_t* Option,uint32_t *V,uint8_t Len)
    Params.Len=Len;
    Cmd2Params_Individual ( &Params,Cmd,Option );
    Value2Params          ( &Params,V          );
-   Send_Cmd2Spi          ( DEBUG_MSG,&Params  );
+   Send_Cmd2Spi          ( &Params            );
 }
 //--------------------------------------------------------------------------------
 void Get_Reg(uint8_t Reg, uint32_t* Ans, uint8_t Len)

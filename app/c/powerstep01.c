@@ -17,15 +17,25 @@ void Init_Powerstep(void)
 //   Set_Reg_Equal ( 11         ,  80    ,1 ); //acc
 //   Set_Reg_Equal ( 12         ,  80    ,1 ); //dec
 //para debug con steppers
-   V[0]=20; V[1]=20; V[2]=20;
+   V[0]=20;
+   V[1]=20;
+   V[2]=20;
    Set_Reg ( 9 ,V ,1 );//hold
-   V[0]=20; V[1]=20; V[2]=20;
-   Set_Reg ( 10 ,V ,1 );
-   V[0]=20; V[1]=20; V[2]=20;
-   Set_Reg ( 11 ,V ,1 );
-   V[0]=20; V[1]=20; V[2]=20;
-   Set_Reg ( 12 ,V ,1 );
-   V[0]=20; V[1]=20; V[2]=20;
+   V[0]=20;
+   V[1]=20;
+   V[2]=20;
+   Set_Reg ( 10 ,V ,1 ); //run
+   V[0]=20;
+   V[1]=20;
+   V[2]=20;
+   Set_Reg ( 11 ,V ,1 ); //acc
+   V[0]=20;
+   V[1]=20;
+   V[2]=20;
+   Set_Reg ( 12 ,V ,1 ); //dec
+   V[0]=20;
+   V[1]=20;
+   V[2]=20;
    //Set_Reg ( 9 ,V ,1 );//hold
    //V[0]=120; V[1]=130; V[2]=80;
    //Set_Reg ( 10 ,V ,1 );
@@ -43,20 +53,24 @@ void Init_Powerstep(void)
 //   V[0]= 70; V[1]= 80; V[2]=70;
 //   Set_Reg ( 12 ,V ,1 );
 
-   V[0]=0x4F0B; // uno genera el clk de salida de 16m desde su clk interno
-   V[1]=0x4F0D; // y ekl otro recibe y regenera inviertido
-   V[2]=0x4F0D;
-   Set_Reg       ( Config_Reg ,V      ,2 );
-   Set_Reg_Equal ( Dec_Reg    ,0x000A ,2 );
-   Set_Reg_Equal ( Acc_Reg    ,0x000A ,2 );
-   Set_Reg_Equal ( Gate1_Reg  ,0x03C3 ,2 ); // boost=250ns Igate =64mA  Tcc= 500nseg tiempo de corriente constate al prender el mos
-   Set_Reg_Equal ( Gate2_Reg  ,0x63   ,1 ); // Tblank para medir corriente = 500n  tdt deadtime = 500ns
-   Set_Reg_Equal ( Fs_Spd     ,0x02FF ,2 ); // full step speed
-   Set_Reg_Equal ( Int_Speed  ,3300   ,2 ); // intersection speed threshold
-   Set_Reg_Equal ( St_Slp     ,30     ,1 ); // start slope compensation
-   Set_Reg_Equal ( Fn_Slp_Acc ,0x00   ,1 ); // fins slope
-   Set_Reg_Equal ( Fn_Slp_Dec ,0x00   ,1 ); //
-   Set_Reg_Equal ( Go_Home_Cmd,0x00   ,0 ); //
+   V[0]=0x4F8B;                              // uno genera el clk de salida de 16m desde su clk interno
+   V[1]=0x4F8D;                              // y ekl otro recibe y regenera inviertido
+   V[2]=0x4F8D;
+   Set_Reg       ( Config_Reg  ,V      ,2 );
+   V[0]=0x01;                                // uno genera el clk de salida de 16m desde su clk interno
+   V[1]=0x01;                                // y ekl otro recibe y regenera inviertido
+   V[2]=0x01;
+   Set_Reg       ( Ocd_Reg     ,V      ,1 ); // overcurren ,para Y un poco mas porqu eosn 2 motores
+   Set_Reg_Equal ( Dec_Reg     ,0x000A ,2 );
+   Set_Reg_Equal ( Acc_Reg     ,0x000A ,2 );
+   Set_Reg_Equal ( Gate1_Reg   ,0x03C3 ,2 ); // boost=250ns Igate =64mA  Tcc= 500nseg tiempo de corriente constate al prender el mos
+   Set_Reg_Equal ( Gate2_Reg   ,0x63   ,1 ); // Tblank para medir corriente = 500n  tdt deadtime = 500ns
+   Set_Reg_Equal ( Fs_Spd      ,0x02FF ,2 ); // full step speed
+   Set_Reg_Equal ( Int_Speed   ,3300   ,2 ); // intersection speed threshold
+   Set_Reg_Equal ( St_Slp      ,30     ,1 ); // start slope compensation
+   Set_Reg_Equal ( Fn_Slp_Acc  ,0x00   ,1 ); // fins slope
+   Set_Reg_Equal ( Fn_Slp_Dec  ,0x00   ,1 ); //
+   Set_Reg_Equal ( Go_Home_Cmd ,0x00   ,0 ); //
    //Set_Reg_Equal ( Step_Mode_Reg ,0x00   ,1 );
 }
 void Get_Acc(float* V)
@@ -126,7 +140,7 @@ void Get_Min_Speed(float* V)
 }
 void Goto(int32_t* Target)
 {
-   uint8_t  Options[ NUM_AXES ]={0};
+   uint8_t  Options[ NUM_AXES ]={0,0,0};
    Send_Data(Goto_Cmd,Options,(uint32_t*)Target,3);
 }
 void Run(uint8_t* Dir, float* V)

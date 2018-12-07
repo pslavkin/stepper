@@ -41,6 +41,7 @@ enum Step01_Registers{
    St_Slp        = 0x0E,
    Fn_Slp_Acc    = 0x0F,
    Fn_Slp_Dec    = 0x10,
+   Ocd_Reg       = 0x13
 };
 
 typedef struct  {
@@ -67,7 +68,7 @@ void     Send_App_Equal       ( uint8_t Cmd, uint8_t Option,uint32_t V,uint8_t L
 void     Send_App4Args_Option ( uint8_t Cmd, char *argv[] ,uint8_t Len               );
 void     Send_App4Args        ( uint8_t Cmd, char *argv[] ,uint8_t Len               );
 // ------------------------------------------------------
-void     Send_Cmd2Spi         ( struct tcp_pcb* tpcb ,Spi_Params* Params             );
+void     Send_Cmd2Spi         ( Spi_Params* Params             );
 void     Toogle_Pulses        ( uint32_t Pulses                                      );
 void     Busy_Read_Task       ( void* nil                                            );
 // ------------------------------------------------------

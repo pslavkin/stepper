@@ -19,6 +19,10 @@ Events Event;
 void           Set_State  ( const State* New_State,const State** Machine ) { *Machine=New_State                       ;}
 const State**  Empty_Sm   ( void                                         ) { return (const State**)Empty_State_Machine;}
 void           Rien       ( void                                         ) { }
+void Delay_0_25Useg(uint32_t d)
+{
+   MAP_SysCtlDelay(d);
+}
 void Delay_Useg(uint32_t d)
 {
    MAP_SysCtlDelay((configCPU_CLOCK_HZ/3000000)*d);
