@@ -9,6 +9,7 @@
 #include "powerstep01.h"
 #include "utils/uartstdio.h"
 #include "utils/ustdlib.h"
+#include "buttons.h"
 
 Motor_t QMotor         = {.Command=2,0}; // Queue motor
 Motor_t AMotor;               // es la que se esta ejecutando en cada instante..
@@ -64,6 +65,18 @@ void Acc_Dec_Steps(Motor_t* M)
    }
 }
 
+bool Pre_Time2Goto(Motor_t* M)
+{
+   uint8_t i;
+   bool Ans=false;
+   for(i=0;i<NUM_AXES;i++) {
+      if(M->Delta[i]<0 || (M->Dec_Step[i]+2000)>M->Delta[i]) {
+         Ans=true;
+         break;
+      }
+   }
+   return Ans;
+}
 bool Time2Goto(Motor_t* M)
 {
    uint8_t i;
@@ -228,7 +241,7 @@ int Cmd_Gcode_GL(struct tcp_pcb* tpcb, int argc, char *argv[])
             QMotor.Target[2]        = QMotor.Actual_Target[2]*uStep2mm[2];
             break;
          case 'F':
-            Set_Max_Vel(&QMotor,ustrtof(argv[i]+1,NULL)/60); //la vel viene x minuto.. yo quiero por segundo
+            Set_Max_Vel(&QMotor,ustrtof(argv[i]+1,NULL)/30); //la vel viene x minuto.. yo quiero por segundo
             break;
          default:
             break;
@@ -352,7 +365,7 @@ void Moves_Parser(void* nil)
    float Aux_Vel[NUM_AXES];
 
    while(1) {
-begin:xQueueReceive(Moves_Queue,&AMotor,portMAX_DELAY);
+      xQueueReceive(Moves_Queue,&AMotor,portMAX_DELAY);
       if(AMotor.Command==0 || AMotor.Command==1)
       {
          if(AMotor.Limited_Vel != Limited_Speed) {
@@ -362,13 +375,9 @@ begin:xQueueReceive(Moves_Queue,&AMotor,portMAX_DELAY);
             Acc_Dec_Steps ( &AMotor );
             Run_Or_Goto   ( &AMotor );
          }
-         while(Busy_Read()==0) { //esta esoera es dek comando goto del comando anterior...
-            vTaskDelay ( pdMS_TO_TICKS(20 ));   //proveche el tiempo de desacelerar para cargar el nuevo dato
-            if(Stop_Now) {
-               Stop_Now=false;
-               goto begin;
-            }
-         }
+         if(Busy_Read()==0)
+            xSemaphoreTake( Busy_Semphr,portMAX_DELAY );
+
          Set_Acc       ( AMotor.Acc );
          Set_Dec       ( AMotor.Dec );
 
@@ -379,29 +388,22 @@ begin:xQueueReceive(Moves_Queue,&AMotor,portMAX_DELAY);
 
          if(AMotor.Run_Goto==true) {
             Run     ( AMotor.Dir, AMotor.Vel );
-            vTaskDelay ( pdMS_TO_TICKS(20 ));
-            while(Busy_Read()==0) {
-               if(Stop_Now) {
-                  Stop_Now=false;
-                  goto begin;
-               }
-               vTaskDelay ( pdMS_TO_TICKS(20 ));
-            }
-            Abs_Pos    ( AMotor.Pos       ) ;
-            Delta      ( &AMotor          ) ;
-            while(Time2Goto(&AMotor)==false) {
+            if(Busy_Read()==0)
+               xSemaphoreTake( Busy_Semphr,portMAX_DELAY );
+            Abs_Pos ( AMotor.Pos );
+            Delta   ( &AMotor    );
+            while   ( Pre_Time2Goto(&AMotor )==false) {
                vTaskDelay ( pdMS_TO_TICKS(20 ));
                Abs_Pos    ( AMotor.Pos       ) ;
                Delta      ( &AMotor          ) ;
-               if(Stop_Now) {
-                  Stop_Now=false;
-                  goto begin;
-               }
             }
-            Run  ( AMotor.Dir, AMotor.Vel ); //que hace aca? buena pregunta.. es el bendito bug
-            while(Busy_Read()==0)
-               ;
+            while(Time2Goto(&AMotor)==false) {
+               Abs_Pos ( AMotor.Pos );
+               Delta   ( &AMotor    );
+            }
          }
+         if(Busy_Read()==0)                                 //ojo que puede llegar aca sin run, o sea aun esta pendiente el gotyo anterior! hay que esperar busy
+            xSemaphoreTake( Busy_Semphr,portMAX_DELAY );
          Goto ( AMotor.Target          );
       }
    }

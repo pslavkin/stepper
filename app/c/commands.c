@@ -22,6 +22,7 @@
 #include "usr_flash.h"
 #include "schedule.h"
 #include "spi_phisical.h"
+#include "buttons.h"
 #include "gcode.h"
 #include "moves.h"
 #include "powerstep01.h"
@@ -601,12 +602,12 @@ int Cmd_Dec     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 }/*}}}*/
 int Cmd_Wait     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Set_Wait_Busy();
+   Reset_Busy_Flag();
    return 0;
 }/*}}}*/
 int Cmd_Nowait     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
-   Unset_Wait_Busy();
+   Print_Busy_Flag();
    return 0;
 }/*}}}*/
 //-----------------CMD PROCESS--------------------------------------------------

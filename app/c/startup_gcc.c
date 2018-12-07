@@ -1,6 +1,12 @@
 #include <stdint.h>
+#include <stdbool.h>
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "semphr.h"
 #include "inc/hw_nvic.h"
 #include "inc/hw_types.h"
+#include "buttons.h"
 
 //*****************************************************************************
 //
@@ -152,7 +158,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // Tamper
     IntDefaultHandler,                      // GPIO Port P (Summary or P0)
     IntDefaultHandler,                      // GPIO Port P1
-    IntDefaultHandler,                      // GPIO Port P2
+    BusyIntHandler,                      // GPIO Port P2
     IntDefaultHandler,                      // GPIO Port P3
     IntDefaultHandler,                      // GPIO Port P4
     IntDefaultHandler,                      // GPIO Port P5

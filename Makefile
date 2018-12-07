@@ -66,6 +66,7 @@ ${COMPILER}:
 #
 # Rules for building the Sample Ethernet I/O Control Application using lwIP.
 #
+${COMPILER}/out.axf: ${COMPILER}/buttons.o
 ${COMPILER}/out.axf: ${COMPILER}/usr_flash.o
 ${COMPILER}/out.axf: ${COMPILER}/main.o
 ${COMPILER}/out.axf: ${COMPILER}/powerstep01.o

@@ -54,7 +54,7 @@ void     Cs_Hi                ( void                                            
 void     Cs_Lo                ( void                                                 );
 void     Rst_Hi               ( void                                                 );
 void     Rst_Lo               ( void                                                 );
-bool     Busy_Read            ( void                                                 );
+//bool     Busy_Read            ( void                                                 );
 // ------------------------------------------------------
 void     Send_Data2Spi        ( void                                                 );
 void     Get_Reg              ( uint8_t Reg, uint32_t* Ans, uint8_t Len              );
@@ -70,10 +70,10 @@ void     Send_App4Args        ( uint8_t Cmd, char *argv[] ,uint8_t Len          
 // ------------------------------------------------------
 void     Send_Cmd2Spi         ( Spi_Params* Params             );
 void     Toogle_Pulses        ( uint32_t Pulses                                      );
-void     Busy_Read_Task       ( void* nil                                            );
+//void     Busy_Read_Task       ( void* nil                                            );
 // ------------------------------------------------------
-void     Set_Wait_Busy        ( void                                                 );
-void     Unset_Wait_Busy      ( void                                                 );
+//void     Set_Wait_Busy        ( void                                                 );
+//void     Unset_Wait_Busy      ( void                                                 );
 
 
 #endif

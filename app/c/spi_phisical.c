@@ -1,6 +1,13 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "semphr.h"
+
+
 #include "driverlib/sysctl.h"
 #include "driverlib/gpio.h"
 #include "utils/uartstdio.h"
@@ -16,11 +23,8 @@
 #include "utils/lwiplib.h"
 #include <stdlib.h>
 #include <string.h>
+#include "buttons.h"
 
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include "semphr.h"
 //-------------------------------------------------------------
 void Cs_Hi    ( void ) { GPIOPinSet   ( GPIO_PORTN_BASE ,GPIO_PIN_2 );}
 void Cs_Lo    ( void ) { GPIOPinReset ( GPIO_PORTN_BASE ,GPIO_PIN_2 );}
@@ -31,24 +35,24 @@ void Rst_Lo   ( void ) { GPIOPinReset ( GPIO_PORTN_BASE ,GPIO_PIN_3 );}
 void Pulse_Hi ( void ) { GPIOPinSet   ( GPIO_PORTM_BASE ,GPIO_PIN_3 );}
 void Pulse_Lo ( void ) { GPIOPinReset ( GPIO_PORTM_BASE ,GPIO_PIN_3 );}
 
-bool Busy_Read ( void ) { return GPIOPinRead ( GPIO_PORTP_BASE ,GPIO_PIN_2 ) ;}
+//bool Busy_Read ( void ) { return GPIOPinRead ( GPIO_PORTP_BASE ,GPIO_PIN_2 ) ;}
 
-SemaphoreHandle_t Busy_Sem;
-bool Wait_Busy=false;
+//bool Wait_Busy=false;
 
-void  Set_Wait_Busy     (void)
-{
-      Wait_Busy=true;
-      UART_ETHprintf(DEBUG_MSG,"wait true\r\n");
-}
-void  Unset_Wait_Busy   (void)
-{
-      Wait_Busy=false;
-      UART_ETHprintf(DEBUG_MSG,"wait false\r\n");
-}
+//void  Set_Wait_Busy     (void)
+//{
+//      Wait_Busy=true;
+//      UART_ETHprintf(DEBUG_MSG,"wait true\r\n");
+//}
+//void  Unset_Wait_Busy   (void)
+//{
+//      Wait_Busy=false;
+//      UART_ETHprintf(DEBUG_MSG,"wait false\r\n");
+//}
+SemaphoreHandle_t Spi_Mutex;
 void  Init_Spi_Phisical (void)
 {
-    Busy_Sem = xSemaphoreCreateMutex();
+    Spi_Mutex = xSemaphoreCreateMutex();
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI2);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
@@ -70,8 +74,8 @@ void  Init_Spi_Phisical (void)
     //reset
     MAP_GPIOPinTypeGPIOOutput ( GPIO_PORTN_BASE,GPIO_PIN_3 );
     Rst_Hi();
-    //Busy 
-    MAP_GPIOPinTypeGPIOInput ( GPIO_PORTP_BASE,GPIO_PIN_2 );
+//    //Busy 
+//    MAP_GPIOPinTypeGPIOInput ( GPIO_PORTP_BASE,GPIO_PIN_2 );
 
     //flag
     MAP_GPIOPinTypeGPIOInput ( GPIO_PORTH_BASE,GPIO_PIN_3 );
@@ -79,6 +83,8 @@ void  Init_Spi_Phisical (void)
     //pulse
     MAP_GPIOPinTypeGPIOOutput ( GPIO_PORTM_BASE,GPIO_PIN_3 );
     Pulse_Hi();
+
+    Init_Busy();
 }
 //-------------------------------------------------------------
 void Send_Cmd2Spi(Spi_Params* Params)
@@ -86,7 +92,7 @@ void Send_Cmd2Spi(Spi_Params* Params)
    uint32_t Ans;
    uint8_t i;
    int8_t n;
-   xSemaphoreTake(Busy_Sem,portMAX_DELAY);
+   xSemaphoreTake(Spi_Mutex,portMAX_DELAY);
    for(i=0;i<=Params->Len;i++) {
       Cs_Lo();
          for(n=NUM_AXES-1;n>=0;n--) {
@@ -97,7 +103,7 @@ void Send_Cmd2Spi(Spi_Params* Params)
       Cs_Hi();
       Delay_0_25Useg(1); //hay que esperar 650nseg antes de bajar de nuevo el CS.. lo medi y esta oka con este delay...
    }
-   xSemaphoreGive(Busy_Sem);
+   xSemaphoreGive(Spi_Mutex);
 }
 //--------------------------------------------------------------------------------
 void Get_Data(uint8_t Reg, uint8_t Option,uint32_t* Ans, uint8_t Len)
@@ -204,15 +210,15 @@ void Toogle_Pulses(uint32_t Pulses)
       Delay_Useg(2000);  //uso esto porque no anda vtaskdelay para tiempos cortos.. tengo el tick en 100hz
    }
 }
-void Busy_Read_Task(void* nil)
-{
-   while(1) {
-      while(Busy_Read()==1)
-         vTaskDelay ( pdMS_TO_TICKS(10 ));
-      UART_ETHprintf(DEBUG_MSG,"busy\n");
-      while(Busy_Read()==0)
-         vTaskDelay ( pdMS_TO_TICKS(10 ));
-      UART_ETHprintf(DEBUG_MSG,"ready\n");
-   }
-}
+//void Busy_Read_Task(void* nil)
+//{
+//   while(1) {
+//      while(Busy_Read()==1)
+//         vTaskDelay ( pdMS_TO_TICKS(10 ));
+//      UART_ETHprintf(DEBUG_MSG,"busy\n");
+//      while(Busy_Read()==0)
+//         vTaskDelay ( pdMS_TO_TICKS(10 ));
+//      UART_ETHprintf(DEBUG_MSG,"ready\n");
+//   }
+//}
 //----------------------------------------------------------------------------------------------------
