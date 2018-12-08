@@ -92,6 +92,7 @@ tCmdLineEntry Motor_Cmd_Table[] =
     { "acc"     ,Cmd_Acc               ,": Acceleration"                                                                       },
     { "dec"     ,Cmd_Dec               ,": Decceleration"                                                                      },
     { "ls"      ,Cmd_Limited_Speed     ,": Limited Speed"                                                                      },
+    { "ss"      ,Cmd_Speed_Scale       ,": Speed Scale"                                                                      },
     { "maxv"    ,Cmd_Max_Speed         ,": Maximum speed"                                                                      },
     { "minv"    ,Cmd_Min_Speed         ,": Minimim speed"                                                                      },
     { "wait"    ,Cmd_Wait              ,": wait"                                                                               },
@@ -632,7 +633,7 @@ void User_Commands_Task(void* nil)
    while(1) {
       uint8_t Index=0;
       while ( UARTgets ( D.Buff ,APP_INPUT_BUF_SIZE-1,&Index )==false) {
-         vTaskDelay(pdMS_TO_TICKS(50));
+         vTaskDelay(pdMS_TO_TICKS(20));
       }
       D.tpcb = UART_MSG;
       D.Id   = Uart_Id;

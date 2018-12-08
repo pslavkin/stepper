@@ -13,9 +13,11 @@ typedef struct
    uint8_t  Run_Goto                ;
    float    Gcode_Vel;
    int16_t  Limited_Vel;
+   uint8_t  Speed_Scale;
    float    Max_Vel      [ NUM_AXES ];
    float    Max_Acc      [ NUM_AXES ];
    float    Max_Dec      [ NUM_AXES ];
+   uint32_t    Minor_Delay2Goto;
  //  float    Distance                 ;
    float    Actual_Distance          ;
     int32_t Pos          [ NUM_AXES ];
@@ -29,6 +31,7 @@ typedef struct
    uint8_t  Dir          [ NUM_AXES ];
    float    Speed        [ NUM_AXES ];
    float    Vel          [ NUM_AXES ];
+   float    Vel4Acc_Limit[ NUM_AXES ];
    float    Acc          [ NUM_AXES ];
    float    Dec          [ NUM_AXES ];
 } Motor_t                            ;
@@ -48,12 +51,13 @@ int      Cmd_Gcode_Print_Motor ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 int      Cmd_Gcode_Ramps       ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 int      Cmd_Get_Queue_Space   ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 void     Print_Motor_t         ( Motor_t* M                                   );
-void     Set_Max_Vel           ( Motor_t* M,float Vel                         );
+void Set_Max_Vel(Motor_t* M,float Vel,uint16_t Limit,uint8_t Scale);
 void     Set_Acc_Dec_Ramp      ( Motor_t* M,float Acc, float Dec              );
 int      Cmd_Halt_GCode_Queue  ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 int      Cmd_Actual_GCode_Line ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 int      Cmd_Kombo_Data        ( struct tcp_pcb* tpcb, int argc, char *argv[] );
 int      Cmd_Limited_Speed     ( struct tcp_pcb* tpcb, int argc, char *argv[] );
+int      Cmd_Speed_Scale(struct tcp_pcb* tpcb, int argc, char *argv[]);
 void     Target2Actual_Target  ( Motor_t* M                                   );
 void Limit_Max_Vel(Motor_t* M);
 

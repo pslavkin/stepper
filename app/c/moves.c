@@ -10,16 +10,20 @@
 #include "utils/uartstdio.h"
 #include "utils/ustdlib.h"
 #include "buttons.h"
+#include "task.h"
+#include "state_machine.h"
 
 Motor_t QMotor         = {.Command=2,0}; // Queue motor
 Motor_t AMotor;               // es la que se esta ejecutando en cada instante..
+uint8_t    Speed_Scale   = 10; // porcentaje de 0.1 a 9.9 pero 1 vale 0.1, y 100 vale 10 para usar un entero
 uint16_t Limited_Speed = 10;  // en  mm/seg
 uint16_t uStep2mm[NUM_AXES]={X_SCALE,Y_SCALE,Z_SCALE};
-float Acc_Ramp=1000, Dec_Ramp=1000;
+float    Acc_Ramp=1000, Dec_Ramp=1000;
 uint32_t Waiting_Line=0;
 
 bool Stop_Now=false;
 QueueHandle_t Moves_Queue;
+SemaphoreHandle_t Stop_Semphr;
 
 void Target2Actual_Target(Motor_t* M)
 {
@@ -60,22 +64,9 @@ void Acc_Dec_Steps(Motor_t* M)
    uint8_t i;
    for(i=0;i<NUM_AXES;i++) {
       M->Acc_Step[i]= ((M->Vel[i]*M->Vel[i])/M->Acc[i])*((float)(MICROSTEP/2));
-      M->Dec_Step[i]= ((M->Vel[i]*M->Vel[i])/M->Dec[i])*((float)(MICROSTEP/2))+(M->Vel[i]*MICROSTEP*0.04);
+      M->Dec_Step[i]= ((M->Vel[i]*M->Vel[i])/M->Dec[i])*((float)(MICROSTEP/2))+(M->Vel[i]*MICROSTEP*0.02);
 //      UART_ETHprintf(UART_MSG,"step to acc=%d dec=%d\n",M->Acc_Step[i],M->Dec_Step[i]);
    }
-}
-
-bool Pre_Time2Goto(Motor_t* M)
-{
-   uint8_t i;
-   bool Ans=false;
-   for(i=0;i<NUM_AXES;i++) {
-      if(M->Delta[i]<0 || (M->Dec_Step[i]+2000)>M->Delta[i]) {
-         Ans=true;
-         break;
-      }
-   }
-   return Ans;
 }
 bool Time2Goto(Motor_t* M)
 {
@@ -89,21 +80,37 @@ bool Time2Goto(Motor_t* M)
    }
    return Ans;
 }
+void Delay_Until_Goto(Motor_t* M)
+{
+   M->Minor_Delay2Goto=0;
+   uint32_t Aux_Delay=0;
+
+   if(M->Run_Goto==true) {
+      uint8_t i;
+      for(i=0;i<NUM_AXES;i++)
+         if(M->Vel[i]>0) {
+
+            //TODO no deberia restar el de Acc step y en la tarea despues del run, me siento a esperar.. pero no me funca.. tengo que  sumar este y despues del run revisar el flag de busy,.......... no se porque pera anda super asi
+            Aux_Delay=((M->Delta[i]-M->Dec_Step[i]-M->Acc_Step[i])*(1000/MICROSTEP))/M->Vel[i]; // trayecto a velocidad constante
+            if(M->Minor_Delay2Goto==0 || Aux_Delay<M->Minor_Delay2Goto)
+               M->Minor_Delay2Goto=Aux_Delay;
+         }
+   }
+}
+
 void Run_Or_Goto(Motor_t* M)
 {
    uint8_t i;
-   uint8_t Any_Delta=0;
-   M->Run_Goto=true; //true es run
-   for(i=0;i<NUM_AXES ;i++) {
-      if((M->Acc_Step[i]+M->Dec_Step[i]-(M->Vel[i]*MICROSTEP*0.02))>M->Delta[i]) {
-         M->Run_Goto=false;
-      }
-      Any_Delta+=(M->Delta[i]>0)?1:0;
-   }
-   M->Run_Goto=(M->Run_Goto) && (Any_Delta>0);
-//   return M->Run_Goto;
+   M->Run_Goto=false;   //si todos los ejes son cero delta, vamos a goto que no hara nada..
 
-//      UART_ETHprintf(UART_MSG,"acc=%d dec=%d delta=%d run=%d \n",M->Acc_Step[i],M->Dec_Step[i],M->Delta[i],M->Run_Goto);
+   for(i=0;i<NUM_AXES ;i++)
+      if(M->Delta[i]>0) {
+         if((M->Acc_Step[i]+M->Dec_Step[i])>M->Delta[i]) {
+            M->Run_Goto=false;                                 //con que uno solo no este de acuerdo.. vamos con goto
+            break;
+         }
+         else M->Run_Goto=true;
+      }
 }
 void Distance(Motor_t* M)
 {
@@ -122,6 +129,7 @@ void Vel(Motor_t* M)
          M->Vel[i]=((float)M->Actual_Delta[i]*M->Max_Vel[i])/M->Actual_Distance;
          if(M->Vel[i]<0.015) M->Vel[i]=0.015;
       }
+      M->Vel4Acc_Limit[i]=M->Vel[i]+15.3;   //le pongo un poco mas de vel para que no limite
    }
 }
 void Accel(Motor_t* M)
@@ -148,10 +156,7 @@ int Cmd_Get_Queue_Space(struct tcp_pcb* tpcb, int argc, char *argv[])
  int Cmd_Halt_GCode_Queue(struct tcp_pcb* tpcb, int argc, char *argv[])
 {
    xQueueReset(Moves_Queue);            // vacio la cola de comandos
-   UART_ETHprintf(tpcb,"ok\n");
-   Stop_Now=true;                      // aviso para que el sistema de control para donde sea que este y luego el mismo cambia el estado de este flag
-   vTaskDelay ( pdMS_TO_TICKS(200 )); // espero a que termine de moverrse
-   Stop_Now=false;
+   xSemaphoreGive(Stop_Semphr);
    Stop();                              // mano un stop por si acaso...podria haber estado moviemndose
    while(Busy_Read()==0)
       vTaskDelay ( pdMS_TO_TICKS(20 )); // espero a que termine de moverrse
@@ -171,6 +176,14 @@ int Cmd_Get_Queue_Space(struct tcp_pcb* tpcb, int argc, char *argv[])
    UART_ETHprintf(tpcb,"line=%d\n",AMotor.Line_Number);
    return 0;
 }
+int Cmd_Speed_Scale(struct tcp_pcb* tpcb, int argc, char *argv[])
+{
+   if(argc>1)
+         Speed_Scale=atoi(argv[1]);
+   else
+      UART_ETHprintf(tpcb,"speed scale= %d\n",Speed_Scale);
+   return 0;
+}
 int Cmd_Limited_Speed(struct tcp_pcb* tpcb, int argc, char *argv[])
 {
    if(argc>1)
@@ -186,7 +199,7 @@ int Cmd_Limited_Speed(struct tcp_pcb* tpcb, int argc, char *argv[])
    float    V  [ NUM_AXES ];
    Abs_Pos ( Pos );
    Speed   ( V   );
-   UART_ETHprintf(tpcb,"%d %d %d %f %f %f %d %d %d %f %f %d\n",
+   UART_ETHprintf(tpcb,"%d %d %d %f %f %f %d %d %d %f %f %d %d\n",
          Pos[ 0 ],Pos[ 1 ],Pos[ 2 ],
          V  [ 0 ],V  [ 1 ],V  [ 2 ],
          uxQueueSpacesAvailable(Moves_Queue),
@@ -194,7 +207,8 @@ int Cmd_Limited_Speed(struct tcp_pcb* tpcb, int argc, char *argv[])
          Waiting_Line,
          Acc_Ramp,
          Dec_Ramp,
-         Limited_Speed
+         Limited_Speed,
+         Speed_Scale
          );
    return 0;
 }
@@ -241,36 +255,39 @@ int Cmd_Gcode_GL(struct tcp_pcb* tpcb, int argc, char *argv[])
             QMotor.Target[2]        = QMotor.Actual_Target[2]*uStep2mm[2];
             break;
          case 'F':
-            Set_Max_Vel(&QMotor,ustrtof(argv[i]+1,NULL)/30); //la vel viene x minuto.. yo quiero por segundo
+            Set_Max_Vel(&QMotor,ustrtof(argv[i]+1,NULL)/60,Limited_Speed,Speed_Scale);//ustrtof(argv[i]+1,NULL)/30); //la vel viene x minuto.. yo quiero por segundo
             break;
          default:
             break;
       }
    }
    if(Change) {
-      Dir           ( &QMotor );
-      Delta         ( &QMotor );
-      Distance      ( &QMotor );
-      Limit_Max_Vel ( &QMotor );
-      Vel           ( &QMotor );
-      Accel         ( &QMotor );
-      Acc_Dec_Steps ( &QMotor );
-      Run_Or_Goto   ( &QMotor );
+      Dir              ( &QMotor );
+      Delta            ( &QMotor );
+      Distance         ( &QMotor );
+      Limit_Max_Vel    ( &QMotor );
+      Vel              ( &QMotor );
+      Accel            ( &QMotor );
+      Acc_Dec_Steps    ( &QMotor );
+      Run_Or_Goto      ( &QMotor );
+      Delay_Until_Goto ( &QMotor );
    }
    xQueueSend(Moves_Queue,&QMotor,portMAX_DELAY);
    return 0;
 }
 void Limit_Max_Vel(Motor_t* M)
 {
-   if(M->Limited_Vel != Limited_Speed)
-      Set_Max_Vel(M,M->Gcode_Vel);
+   if(M->Limited_Vel != Limited_Speed ||
+      M->Speed_Scale != Speed_Scale)
+      Set_Max_Vel(M,M->Gcode_Vel,Limited_Speed,Speed_Scale);
 }
 
-void Set_Max_Vel(Motor_t* M,float Vel)
+void Set_Max_Vel(Motor_t* M,float Vel,uint16_t Limit,uint8_t Scale)
 {
    uint8_t i;
    M->Gcode_Vel   = Vel;                          // me acuerdo de la original
-   M->Limited_Vel = Limited_Speed;                  // me acuerdo de la original
+   M->Limited_Vel = Limit;                  // me acuerdo de la original
+   Vel*=(float)Scale/10;
    if(Vel>Limited_Speed)                            // limio vel
       Vel=Limited_Speed;
    for(i=0;i<NUM_AXES;i++)
@@ -307,9 +324,16 @@ void Print_Motor_t(Motor_t* M)
 //            "SpeedX=%f "
 //            "SpeedY=%f "
 //            "SpeedZ=%f \n"
+            "AccX=%f "
+            "AccY=%f "
+            "AccZ=%f \n"
+            "DecX=%f "
+            "DecY=%f "
+            "DecZ=%f \n"
             "VelX=%f "
             "VelY=%f "
             "VelZ=%f \n"
+            "Minor_Delay2Goto=%d \n"
             "",
             M->Line_Number,
             M->Command,
@@ -338,9 +362,16 @@ void Print_Motor_t(Motor_t* M)
 //            M->Speed[0],
 //            M->Speed[1],
 //            M->Speed[2],
+            M->Acc[0],
+            M->Acc[1],
+            M->Acc[2],
+            M->Dec[0],
+            M->Dec[1],
+            M->Dec[2],
             M->Vel[0],
             M->Vel[1],
-            M->Vel[2]
+            M->Vel[2],
+            M->Minor_Delay2Goto
             );
 }/*}}}*/
 
@@ -358,53 +389,50 @@ void Moves_Parser(void* nil)
 {
    Init_Powerstep();
    Moves_Queue= xQueueCreate(MOVES_QUEUE_SIZE,sizeof(Motor_t));
-   Set_Max_Vel      ( &AMotor ,10*MICROSTEP );
-   Set_Max_Vel      ( &QMotor ,10*MICROSTEP );
+   Stop_Semphr = xSemaphoreCreateBinary     ( );
+
+   Set_Max_Vel      ( &AMotor ,10*MICROSTEP ,Limited_Speed,Speed_Scale);
+   Set_Max_Vel      ( &QMotor ,10*MICROSTEP ,Limited_Speed,Speed_Scale);
    AMotor.Line_Number = 0;
    AMotor.Command     = 2; //invalido al inicio
-   float Aux_Vel[NUM_AXES];
 
    while(1) {
       xQueueReceive(Moves_Queue,&AMotor,portMAX_DELAY);
       if(AMotor.Command==0 || AMotor.Command==1)
       {
-         if(AMotor.Limited_Vel != Limited_Speed) {
-            Limit_Max_Vel ( &AMotor );
-            Vel           ( &AMotor );
-            Accel         ( &AMotor );
-            Acc_Dec_Steps ( &AMotor );
-            Run_Or_Goto   ( &AMotor );
+         if(AMotor.Limited_Vel != Limited_Speed ||
+            AMotor.Speed_Scale != Speed_Scale) {
+            Set_Max_Vel(&AMotor,AMotor.Gcode_Vel,Limited_Speed,Speed_Scale);
+            Vel              ( &AMotor );
+            Accel            ( &AMotor );
+            Acc_Dec_Steps    ( &AMotor );
+            Run_Or_Goto      ( &AMotor );
+            Delay_Until_Goto ( &AMotor );
          }
          if(Busy_Read()==0)
             xSemaphoreTake( Busy_Semphr,portMAX_DELAY );
 
-         Set_Acc       ( AMotor.Acc );
-         Set_Dec       ( AMotor.Dec );
-
-         Aux_Vel[0]=AMotor.Vel[0]+15.3;   //le pongo un poco mas de vel para que no limite
-         Aux_Vel[1]=AMotor.Vel[1]+15.3;
-         Aux_Vel[2]=AMotor.Vel[2]+15.3;
-         Set_Max_Speed ( Aux_Vel );
+         Set_Acc       ( AMotor.Acc           );
+         Set_Dec       ( AMotor.Dec           );
+         Set_Max_Speed ( AMotor.Vel4Acc_Limit );
 
          if(AMotor.Run_Goto==true) {
             Run     ( AMotor.Dir, AMotor.Vel );
             if(Busy_Read()==0)
                xSemaphoreTake( Busy_Semphr,portMAX_DELAY );
-            Abs_Pos ( AMotor.Pos );
-            Delta   ( &AMotor    );
-            while   ( Pre_Time2Goto(&AMotor )==false) {
-               vTaskDelay ( pdMS_TO_TICKS(20 ));
-               Abs_Pos    ( AMotor.Pos       ) ;
-               Delta      ( &AMotor          ) ;
-            }
-            while(Time2Goto(&AMotor)==false) {
-               Abs_Pos ( AMotor.Pos );
-               Delta   ( &AMotor    );
-            }
+
+               xSemaphoreTake( Stop_Semphr,pdMS_TO_TICKS(AMotor.Minor_Delay2Goto) );
+
+               while(Time2Goto(&AMotor)==false) {
+                  Abs_Pos ( AMotor.Pos );
+                  Delta   ( &AMotor    );
+               }
+
+
          }
          if(Busy_Read()==0)                                 //ojo que puede llegar aca sin run, o sea aun esta pendiente el gotyo anterior! hay que esperar busy
             xSemaphoreTake( Busy_Semphr,portMAX_DELAY );
-         Goto ( AMotor.Target          );
+         Goto ( AMotor.Target );
       }
    }
 }

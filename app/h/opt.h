@@ -8,7 +8,7 @@
 #define UART_TX_BUFFER_SIZE     2048
 
 #define GCODE_QUEUE_SIZE        20
-#define MOVES_QUEUE_SIZE        30
+#define MOVES_QUEUE_SIZE        100
 #define MAX_EVENTS              10
 #define SSI_BIT_RATE            5000000                                 //esta en 10k y podria llegar a 5Mb
 
