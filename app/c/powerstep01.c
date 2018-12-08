@@ -16,25 +16,26 @@ void Init_Powerstep(void)
 //   Set_Reg_Equal ( 10         ,  80    ,1 ); //run para stepper de prueba 80, para cnc 150
 //   Set_Reg_Equal ( 11         ,  80    ,1 ); //acc
 //   Set_Reg_Equal ( 12         ,  80    ,1 ); //dec
+#ifdef CNC_STEPPERS
 //para CNC
-//   V[0]=20;
-//   V[1]=20;
-//   V[2]=30;
-//   Set_Reg ( 9 ,V ,1 );//hold
-//   V[0]=40;
-//   V[1]=40;
-//   V[2]=45;
-//   Set_Reg ( 10 ,V ,1 ); //run
-//   V[0]=30;
-//   V[1]=30;
-//   V[2]=45;
-//   Set_Reg ( 11 ,V ,1 ); //acc
-//   V[0]=30;
-//   V[1]=30;
-//   V[2]=35;
-//   Set_Reg ( 12 ,V ,1 ); //dec
-//
-   
+   V[0]=20;
+   V[1]=20;
+   V[2]=30;
+   Set_Reg ( 9 ,V ,1 );//hold
+   V[0]=40;
+   V[1]=40;
+   V[2]=65;
+   Set_Reg ( 10 ,V ,1 ); //run
+   V[0]=30;
+   V[1]=30;
+   V[2]=55;
+   Set_Reg ( 11 ,V ,1 ); //acc
+   V[0]=30;
+   V[1]=30;
+   V[2]=35;
+   Set_Reg ( 12 ,V ,1 ); //dec
+
+#else
 //para debug con steppers
    V[0]=20;
    V[1]=20;
@@ -52,27 +53,7 @@ void Init_Powerstep(void)
    V[1]=20;
    V[2]=20;
    Set_Reg ( 12 ,V ,1 ); //dec
-   
-   
-   //   V[0]=30;
-//   V[1]=20;
-//   V[2]=20;
-   //Set_Reg ( 9 ,V ,1 );//hold
-   //V[0]=120; V[1]=130; V[2]=80;
-   //Set_Reg ( 10 ,V ,1 );
-   //V[0]=100; V[1]=160; V[2]=80;
-   //Set_Reg ( 11 ,V ,1 );
-   //V[0]=100; V[1]=160; V[2]=80;
-   //Set_Reg ( 12 ,V ,1 );
-   //minimo para que se mueva la maquina en 128
-//   V[0]=30; V[1]=30; V[2]=30;
-//   Set_Reg ( 9 ,V ,1 );//hold
-//   V[0]= 70; V[1]= 80; V[2]=70;
-//   Set_Reg ( 10 ,V ,1 );
-//   V[0]= 70; V[1]= 80; V[2]=70;
-//   Set_Reg ( 11 ,V ,1 );
-//   V[0]= 70; V[1]= 80; V[2]=70;
-//   Set_Reg ( 12 ,V ,1 );
+#endif
 
    V[0]=0x4F8B;                              // uno genera el clk de salida de 16m desde su clk interno
    V[1]=0x4F8D;                              // y ekl otro recibe y regenera inviertido

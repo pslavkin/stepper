@@ -92,6 +92,8 @@ tCmdLineEntry Motor_Cmd_Table[] =
     { "acc"     ,Cmd_Acc               ,": Acceleration"                                                                       },
     { "dec"     ,Cmd_Dec               ,": Decceleration"                                                                      },
     { "ls"      ,Cmd_Limited_Speed     ,": Limited Speed"                                                                      },
+    { "pause"   ,Cmd_Pause             ,": pause execution"                                                                      },
+    { "resume"  ,Cmd_Resume            ,": resume execution"                                                                      },
     { "ss"      ,Cmd_Speed_Scale       ,": Speed Scale"                                                                      },
     { "maxv"    ,Cmd_Max_Speed         ,": Maximum speed"                                                                      },
     { "minv"    ,Cmd_Min_Speed         ,": Minimim speed"                                                                      },
@@ -515,7 +517,8 @@ int Cmd_Spi_Status     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
 {/*{{{*/
    uint32_t Ans[NUM_AXES];
    Get_App(Get_Status_Cmd,Ans,2);
-   UART_ETHprintf(tpcb,"status= 0x%04x 0x%04x 0x%04x\n",Ans[0],Ans[1],Ans[2]);
+   if(argc>1)
+      UART_ETHprintf(tpcb,"status= 0x%04x 0x%04x 0x%04x\n",Ans[0],Ans[1],Ans[2]);
    return 0;
 }/*}}}*/
 int Cmd_Toogle_Pulses(struct tcp_pcb* tpcb, int argc, char *argv[])

@@ -20,6 +20,7 @@ uint16_t Limited_Speed = 10;  // en  mm/seg
 uint16_t uStep2mm[NUM_AXES]={X_SCALE,Y_SCALE,Z_SCALE};
 float    Acc_Ramp=1000, Dec_Ramp=1000;
 uint32_t Waiting_Line=0;
+bool Paused_Flag=0;
 
 bool Stop_Now=false;
 QueueHandle_t Moves_Queue;
@@ -64,7 +65,7 @@ void Acc_Dec_Steps(Motor_t* M)
    uint8_t i;
    for(i=0;i<NUM_AXES;i++) {
       M->Acc_Step[i]= ((M->Vel[i]*M->Vel[i])/M->Acc[i])*((float)(MICROSTEP/2));
-      M->Dec_Step[i]= ((M->Vel[i]*M->Vel[i])/M->Dec[i])*((float)(MICROSTEP/2))+(M->Vel[i]*MICROSTEP*0.02);
+      M->Dec_Step[i]= ((M->Vel[i]*M->Vel[i])/M->Dec[i])*((float)(MICROSTEP/2));
 //      UART_ETHprintf(UART_MSG,"step to acc=%d dec=%d\n",M->Acc_Step[i],M->Dec_Step[i]);
    }
 }
@@ -73,7 +74,7 @@ bool Time2Goto(Motor_t* M)
    uint8_t i;
    bool Ans=false;
    for(i=0;i<NUM_AXES;i++) {
-      if(M->Delta[i]<0 || M->Dec_Step[i]>M->Delta[i]) {
+      if(M->Delta[i]<0 || M->Dec_Step[i]>=M->Delta[i]) {
          Ans=true;
          break;
       }
@@ -90,8 +91,9 @@ void Delay_Until_Goto(Motor_t* M)
       for(i=0;i<NUM_AXES;i++)
          if(M->Vel[i]>0) {
 
-            //TODO no deberia restar el de Acc step y en la tarea despues del run, me siento a esperar.. pero no me funca.. tengo que  sumar este y despues del run revisar el flag de busy,.......... no se porque pera anda super asi
-            Aux_Delay=((M->Delta[i]-M->Dec_Step[i]-M->Acc_Step[i])*(1000/MICROSTEP))/M->Vel[i]; // trayecto a velocidad constante
+            //TODO no deberia restar el de Acc step y en la tarea despues del run, me siento a esperar.. pero no me funca.. tengo que  sumar este y despues del run revisar el flag de busy,.......... no se porqu+e
+            //ya se porque, porque para calcular el tiempo de aceleracion tengo que usar otra ecuacion cuadratica, no es lneal, por eso me conviene esperar el flag y no hacer la cuenta
+            Aux_Delay=((M->Delta[i]-M->Dec_Step[i]-M->Acc_Step[i])*970)/(MICROSTEP*M->Vel[i]); // trayecto a velocidad constante
             if(M->Minor_Delay2Goto==0 || Aux_Delay<M->Minor_Delay2Goto)
                M->Minor_Delay2Goto=Aux_Delay;
          }
@@ -105,7 +107,7 @@ void Run_Or_Goto(Motor_t* M)
 
    for(i=0;i<NUM_AXES ;i++)
       if(M->Delta[i]>0) {
-         if((M->Acc_Step[i]+M->Dec_Step[i])>M->Delta[i]) {
+         if((M->Acc_Step[i]+M->Dec_Step[i]+(M->Vel[i]*MICROSTEP)*0.02)>M->Delta[i]) {
             M->Run_Goto=false;                                 //con que uno solo no este de acuerdo.. vamos con goto
             break;
          }
@@ -147,7 +149,16 @@ void Accel(Motor_t* M)
 //      UART_ETHprintf(UART_MSG,"Acc=%f Dec=%f\n",M->Acc[i],M->Dec[i]);
    }
 }
-
+int Cmd_Pause(struct tcp_pcb* tpcb, int argc, char *argv[])
+{
+   Paused_Flag=true;
+   return 0;
+}
+int Cmd_Resume(struct tcp_pcb* tpcb, int argc, char *argv[])
+{
+   Paused_Flag=false;
+   return 0;
+}
 int Cmd_Get_Queue_Space(struct tcp_pcb* tpcb, int argc, char *argv[])
 {
    UART_ETHprintf(tpcb,"space=%d\n",uxQueueSpacesAvailable(Moves_Queue));
@@ -214,7 +225,7 @@ int Cmd_Limited_Speed(struct tcp_pcb* tpcb, int argc, char *argv[])
 }
 int Cmd_Gcode_Print_Motor(struct tcp_pcb* tpcb, int argc, char *argv[])
 {
-   Print_Motor_t(&AMotor);
+   Print_Motor_t(tpcb,&AMotor);
    return 0;
 }
 
@@ -294,9 +305,9 @@ void Set_Max_Vel(Motor_t* M,float Vel,uint16_t Limit,uint8_t Scale)
       M->Max_Vel[i]=(Vel*uStep2mm[i])/MICROSTEP; // la vel esta en pasos no micropasos
 }
 
-void Print_Motor_t(Motor_t* M)
+void Print_Motor_t(struct tcp_pcb* tpcb,Motor_t* M)
 {/*{{{*/
-      UART_ETHprintf(UART_MSG,
+      UART_ETHprintf(tpcb,
             "N=%d "
             "Command=%d \n"
             "TargetX=%d "
@@ -382,7 +393,7 @@ int Cmd_Gcode_Ramps(struct tcp_pcb* tpcb, int argc, char *argv[])
       Dec_Ramp=ustrtof ( argv[2],NULL );
    }
    else
-      UART_ETHprintf(UART_MSG,"Ramps Acc=%f Dec=%f\n",Acc_Ramp,Dec_Ramp);
+      UART_ETHprintf(tpcb,"Ramps Acc=%f Dec=%f\n",Acc_Ramp,Dec_Ramp);
    return 0;
 }
 void Moves_Parser(void* nil)
@@ -397,6 +408,8 @@ void Moves_Parser(void* nil)
    AMotor.Command     = 2; //invalido al inicio
 
    while(1) {
+      while(Paused_Flag==true)
+         vTaskDelay(pdMS_TO_TICKS(100));
       xQueueReceive(Moves_Queue,&AMotor,portMAX_DELAY);
       if(AMotor.Command==0 || AMotor.Command==1)
       {
@@ -419,19 +432,18 @@ void Moves_Parser(void* nil)
          if(AMotor.Run_Goto==true) {
             Run     ( AMotor.Dir, AMotor.Vel );
             if(Busy_Read()==0)
-               xSemaphoreTake( Busy_Semphr,portMAX_DELAY );
+               xSemaphoreTake( Busy_Semphr,portMAX_DELAY );    //hasta aaca el movimiento fue cuadratico
 
-               xSemaphoreTake( Stop_Semphr,pdMS_TO_TICKS(AMotor.Minor_Delay2Goto) );
+               xSemaphoreTake( Stop_Semphr,pdMS_TO_TICKS(AMotor.Minor_Delay2Goto) );   //aca se mueve a V cte.
 
-               while(Time2Goto(&AMotor)==false) {
-                  Abs_Pos ( AMotor.Pos );
-                  Delta   ( &AMotor    );
-               }
-
-
+//               while(Time2Goto(&AMotor)==false) {  //estoy cerquita, espero a huevo
+//                  Abs_Pos ( AMotor.Pos );
+//                  Delta   ( &AMotor    );
+//               }
          }
          if(Busy_Read()==0)                                 //ojo que puede llegar aca sin run, o sea aun esta pendiente el gotyo anterior! hay que esperar busy
             xSemaphoreTake( Busy_Semphr,portMAX_DELAY );
+         Cmd_Spi_Status(NULL,0,NULL);
          Goto ( AMotor.Target );
       }
    }
