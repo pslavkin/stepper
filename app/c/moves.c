@@ -93,7 +93,7 @@ void Delay_Until_Goto(Motor_t* M)
 
             //TODO no deberia restar el de Acc step y en la tarea despues del run, me siento a esperar.. pero no me funca.. tengo que  sumar este y despues del run revisar el flag de busy,.......... no se porqu+e
             //ya se porque, porque para calcular el tiempo de aceleracion tengo que usar otra ecuacion cuadratica, no es lneal, por eso me conviene esperar el flag y no hacer la cuenta
-            Aux_Delay=((M->Delta[i]-M->Dec_Step[i]-M->Acc_Step[i])*970)/(MICROSTEP*M->Vel[i]); // trayecto a velocidad constante
+            Aux_Delay=((M->Delta[i]-M->Dec_Step[i]-M->Acc_Step[i])* 960)/(MICROSTEP*M->Vel[i]); // trayecto a velocidad constante
             if(M->Minor_Delay2Goto==0 || Aux_Delay<M->Minor_Delay2Goto)
                M->Minor_Delay2Goto=Aux_Delay;
          }
@@ -170,7 +170,7 @@ int Cmd_Get_Queue_Space(struct tcp_pcb* tpcb, int argc, char *argv[])
    xSemaphoreGive(Stop_Semphr);
    Stop();                              // mano un stop por si acaso...podria haber estado moviemndose
    while(Busy_Read()==0)
-      vTaskDelay ( pdMS_TO_TICKS(20 )); // espero a que termine de moverrse
+      vTaskDelay ( pdMS_TO_TICKS(100 )); // espero a que termine de moverrse
    Abs_Pos  ( AMotor.Pos            );  // tomo la posicion donde quedo
    AMotor.Target[0] = AMotor.Pos[0];    // mq eudo con la posicion del motor actual
    AMotor.Target[1] = AMotor.Pos[1];
@@ -256,6 +256,7 @@ int Cmd_Gcode_GL(struct tcp_pcb* tpcb, int argc, char *argv[])
          case 'X':
             QMotor.Actual_Target[0] = ustrtof(argv[i]+1,NULL);
             QMotor.Target[0]        = QMotor.Actual_Target[0]*uStep2mm[0];
+ 
             break;
          case 'Y':
             QMotor.Actual_Target[1] = ustrtof(argv[i]+1,NULL);
@@ -424,6 +425,7 @@ void Moves_Parser(void* nil)
          }
          if(Busy_Read()==0)
             xSemaphoreTake( Busy_Semphr,portMAX_DELAY );
+         xSemaphoreTake( Busy_Semphr,0);
 
          Set_Acc       ( AMotor.Acc           );
          Set_Dec       ( AMotor.Dec           );
@@ -433,17 +435,11 @@ void Moves_Parser(void* nil)
             Run     ( AMotor.Dir, AMotor.Vel );
             if(Busy_Read()==0)
                xSemaphoreTake( Busy_Semphr,portMAX_DELAY );    //hasta aaca el movimiento fue cuadratico
+            xSemaphoreTake( Busy_Semphr,0 );    //hasta aaca el movimiento fue cuadratico
 
-               xSemaphoreTake( Stop_Semphr,pdMS_TO_TICKS(AMotor.Minor_Delay2Goto) );   //aca se mueve a V cte.
-
-//               while(Time2Goto(&AMotor)==false) {  //estoy cerquita, espero a huevo
-//                  Abs_Pos ( AMotor.Pos );
-//                  Delta   ( &AMotor    );
-//               }
+            xSemaphoreTake( Stop_Semphr,pdMS_TO_TICKS(AMotor.Minor_Delay2Goto) );   //aca se mueve a V cte.
          }
-         if(Busy_Read()==0)                                 //ojo que puede llegar aca sin run, o sea aun esta pendiente el gotyo anterior! hay que esperar busy
-            xSemaphoreTake( Busy_Semphr,portMAX_DELAY );
-         Cmd_Spi_Status(NULL,0,NULL);
+         xSemaphoreTake( Busy_Semphr,0 );    //hasta aaca el movimiento fue cuadratico
          Goto ( AMotor.Target );
       }
    }

@@ -439,8 +439,16 @@ int Cmd_Spi_Run(struct tcp_pcb* tpcb, int argc, char *argv[])
 int Cmd_Spi_Abs_Pos(struct tcp_pcb* tpcb, int argc, char *argv[])
 {/*{{{*/
    int32_t  Pos[ NUM_AXES ];
-   Abs_Pos(Pos);
-   UART_ETHprintf(tpcb,"pos= %d %d %d\n",Pos[0],Pos[1],Pos[2]);
+   if(argc>1){
+      uint8_t i;
+      for(i=0;i<NUM_AXES;i++)
+         Pos[i] = atoi( argv[1+i] );
+      Set_Abs_Pos(Pos);
+   }
+   else {
+      Abs_Pos(Pos);
+      UART_ETHprintf(tpcb,"pos= %d %d %d\n",Pos[0],Pos[1],Pos[2]);
+   }
    return 0;
 }/*}}}*/
 int Cmd_Spi_Step       ( struct tcp_pcb* tpcb, int argc, char *argv[] )

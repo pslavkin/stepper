@@ -24,11 +24,11 @@ void Init_Powerstep(void)
    Set_Reg ( 9 ,V ,1 );//hold
    V[0]=40;
    V[1]=40;
-   V[2]=65;
+   V[2]=75;
    Set_Reg ( 10 ,V ,1 ); //run
    V[0]=30;
    V[1]=30;
-   V[2]=55;
+   V[2]=50;
    Set_Reg ( 11 ,V ,1 ); //acc
    V[0]=30;
    V[1]=30;
@@ -146,7 +146,20 @@ void Get_Min_Speed(float* V)
 void Goto(int32_t* Target)
 {
    uint8_t  Options[ NUM_AXES ]={0,0,0};
-   Send_Data(Goto_Cmd,Options,(uint32_t*)Target,3);
+   uint32_t T[NUM_AXES];
+   uint8_t i;
+   for(i=0;i<NUM_AXES;i++)
+      T[i]=Target[i]&0x003FFFFF;
+   Send_Data(Goto_Cmd,Options,T,3);
+}
+void Goto_Mark(int32_t* Target)
+{
+   uint32_t T[NUM_AXES];
+   uint8_t i;
+   for(i=0;i<NUM_AXES;i++)
+      T[i]=Target[i]&0x003FFFFF;
+   Set_Reg        ( Mark_Reg     ,T,3 );
+   Send_App_Equal ( Go_Mark_Cmd, 0,0,0      )            ;
 }
 void Run(uint8_t* Dir, float* V)
 {
@@ -155,6 +168,15 @@ void Run(uint8_t* Dir, float* V)
    for(i=0;i<NUM_AXES;i++)
       Ans[i]=(float)V[i]*67.108864;
    Send_Data(Run_Dir_Cmd,Dir,Ans,3);
+}
+
+void Set_Abs_Pos(int32_t* Target)
+{
+   uint32_t T[NUM_AXES];
+   uint8_t i;
+   for(i=0;i<NUM_AXES;i++)
+      T[i]=Target[i]&0x003FFFFF;
+   Set_Reg(Abs_Pos_Reg,T,3);
 }
 void  Abs_Pos(int32_t* Pos)
 {

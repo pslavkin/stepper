@@ -16,7 +16,9 @@ void        Goto           ( int32_t* Target        );
 void        Run            ( uint8_t* Dir, float* V );
 void        Stop           ( void                   );
 void        Hard_Stop      ( void                   );
+void Set_Abs_Pos(int32_t* Target);
 void    Abs_Pos        ( int32_t* Pos           );
 void      Speed          ( float* V               );
+void Goto_Mark(int32_t* Target);
 
 #endif

@@ -27,6 +27,7 @@ enum Step01_App_Cmd {
 };
 enum Step01_Registers{
    Abs_Pos_Reg   = 0x01,
+   Mark_Reg      = 0x03,
    Speed_Reg     = 0x04,
    Acc_Reg       = 0x05,
    Dec_Reg       = 0x06,
