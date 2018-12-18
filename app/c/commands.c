@@ -644,7 +644,7 @@ void User_Commands_Task(void* nil)
    while(1) {
       uint8_t Index=0;
       while ( UARTgets ( D.Buff ,APP_INPUT_BUF_SIZE-1,&Index )==false) {
-         vTaskDelay(pdMS_TO_TICKS(20));
+         vTaskDelay(pdMS_TO_TICKS(30));
       }
       D.tpcb = UART_MSG;
       D.Id   = Uart_Id;

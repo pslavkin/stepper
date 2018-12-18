@@ -2,15 +2,15 @@
 #define __OPT_H__
 
 //comentar para usar steppers de debug
-#define CNC_STEPPERS 
+#define CNC_STEPPERS
 
 #define APP_INPUT_BUF_SIZE      64
 #define UART_BUFFERED
 #define UART_RX_BUFFER_SIZE     256
 #define UART_TX_BUFFER_SIZE     2048
 
-#define GCODE_QUEUE_SIZE        20
-#define MOVES_QUEUE_SIZE        50
+#define GCODE_QUEUE_SIZE        50
+#define MOVES_QUEUE_SIZE        20
 #define MAX_EVENTS              10
 #define SSI_BIT_RATE            5000000                                 //esta en 10k y podria llegar a 5Mb
 

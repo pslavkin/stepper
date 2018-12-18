@@ -59,8 +59,8 @@ void Init_Powerstep(void)
    V[1]=0x4F8D;                              // y ekl otro recibe y regenera inviertido
    V[2]=0x4F8D;
    Set_Reg       ( Config_Reg  ,V      ,2 );
-   V[0]=0x01;                                // uno genera el clk de salida de 16m desde su clk interno
-   V[1]=0x02;                                // y ekl otro recibe y regenera inviertido
+   V[0]=0x01;
+   V[1]=0x02;
    V[2]=0x01;
    Set_Reg       ( Ocd_Reg     ,V      ,1 ); // overcurren ,para Y un poco mas porqu eosn 2 motores
    Set_Reg_Equal ( Dec_Reg     ,0x000A ,2 );
@@ -69,8 +69,8 @@ void Init_Powerstep(void)
    Set_Reg_Equal ( Gate2_Reg   ,0x63   ,1 ); // Tblank para medir corriente = 500n  tdt deadtime = 500ns
    Set_Reg_Equal ( Fs_Spd      ,0x02FF ,2 ); // full step speed
    Set_Reg_Equal ( Int_Speed   ,3300   ,2 ); // intersection speed threshold
-   V[0]=50;                                // uno genera el clk de salida de 16m desde su clk interno
-   V[1]=50;                                // y ekl otro recibe y regenera inviertido
+   V[0]=50;
+   V[1]=50;
    V[2]=50;
    Set_Reg       ( St_Slp      ,V     ,1 ); // start slope compensation
    Set_Reg_Equal ( Fn_Slp_Acc  ,0x00   ,1 ); // fins slope
