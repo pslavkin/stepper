@@ -93,7 +93,7 @@ void Delay_Until_Goto(Motor_t* M)
 
             //TODO no deberia restar el de Acc step y en la tarea despues del run, me siento a esperar.. pero no me funca.. tengo que  sumar este y despues del run revisar el flag de busy,.......... no se porqu+e
             //ya se porque, porque para calcular el tiempo de aceleracion tengo que usar otra ecuacion cuadratica, no es lneal, por eso me conviene esperar el flag y no hacer la cuenta
-            Aux_Delay=((M->Delta[i]-M->Dec_Step[i]-M->Acc_Step[i])* 960)/(MICROSTEP*M->Vel[i]); // trayecto a velocidad constante
+            Aux_Delay=((M->Delta[i]-M->Dec_Step[i]-M->Acc_Step[i])* 950)/(MICROSTEP*M->Vel[i]); // trayecto a velocidad constante
             if(M->Minor_Delay2Goto==0 || Aux_Delay<M->Minor_Delay2Goto)
                M->Minor_Delay2Goto=Aux_Delay;
          }
