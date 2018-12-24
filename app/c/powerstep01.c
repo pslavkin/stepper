@@ -43,7 +43,7 @@ void Init_Powerstep(void)
    Set_Reg ( 9 ,V ,1 );//hold
    V[0]=20;
    V[1]=20;
-   V[2]=20;
+   V[2]=25;
    Set_Reg ( 10 ,V ,1 ); //run
    V[0]=20;
    V[1]=20;
@@ -142,6 +142,14 @@ void Get_Min_Speed(float* V)
    Get_Reg ( Min_Speed_Reg,Ans,2 );
    for(i=0;i<NUM_AXES;i++)
       V[i]=Ans[i]/4.194304;
+}
+void Goto_Dir(int32_t* Target, uint8_t* Dir)
+{
+   uint32_t T[NUM_AXES];
+   uint8_t i;
+   for(i=0;i<NUM_AXES;i++)
+      T[i]=Target[i]&0x003FFFFF;
+   Send_Data(Goto_Dir_Cmd,Dir,T,3);
 }
 void Goto(int32_t* Target)
 {

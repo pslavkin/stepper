@@ -20,5 +20,6 @@ void Set_Abs_Pos(int32_t* Target);
 void    Abs_Pos        ( int32_t* Pos           );
 void      Speed          ( float* V               );
 void Goto_Mark(int32_t* Target);
+void Goto_Dir(int32_t* Target, uint8_t* Dir);
 
 #endif
