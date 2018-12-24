@@ -60,6 +60,13 @@ void Delta(Motor_t* M)
      // UART_ETHprintf(UART_MSG,"delta=%d\n",M->Delta[i]);
    }
 }
+
+
+void Restringed_Vel(Motor_t* M)
+{
+   M->Restringed_GCode_Vel= sqrt((2*M->Actual_Distance)/((1/Acc_Ramp)+(1/Dec_Ramp)));
+}
+
 void Acc_Dec_Steps(Motor_t* M)
 {
    uint8_t i;
@@ -93,7 +100,7 @@ void Delay_Until_Goto(Motor_t* M)
 
             //TODO no deberia restar el de Acc step y en la tarea despues del run, me siento a esperar.. pero no me funca.. tengo que  sumar este y despues del run revisar el flag de busy,.......... no se porqu+e
             //ya se porque, porque para calcular el tiempo de aceleracion tengo que usar otra ecuacion cuadratica, no es lneal, por eso me conviene esperar el flag y no hacer la cuenta
-            Aux_Delay=((M->Delta[i]-M->Dec_Step[i]-M->Acc_Step[i])* 950)/(MICROSTEP*M->Vel[i]); // trayecto a velocidad constante
+            Aux_Delay=((M->Delta[i]-M->Dec_Step[i]-M->Acc_Step[i])*  990)/(MICROSTEP*M->Vel[i]); // trayecto a velocidad constante
             if(M->Minor_Delay2Goto==0 || Aux_Delay<M->Minor_Delay2Goto)
                M->Minor_Delay2Goto=Aux_Delay;
          }
@@ -166,20 +173,20 @@ int Cmd_Get_Queue_Space(struct tcp_pcb* tpcb, int argc, char *argv[])
 }
  int Cmd_Halt_GCode_Queue(struct tcp_pcb* tpcb, int argc, char *argv[])
 {
-   xQueueReset(Moves_Queue);            // vacio la cola de comandos
+   xQueueReset(Moves_Queue);             // vacio la cola de comandos
    xSemaphoreGive(Stop_Semphr);
-   Stop();                              // mano un stop por si acaso...podria haber estado moviemndose
+   Stop();                               // mano un stop por si acaso...podria haber estado moviemndose
    while(Busy_Read()==0)
       vTaskDelay ( pdMS_TO_TICKS(100 )); // espero a que termine de moverrse
-   Abs_Pos  ( AMotor.Pos            );  // tomo la posicion donde quedo
-   AMotor.Target[0] = AMotor.Pos[0];    // mq eudo con la posicion del motor actual
+   Abs_Pos  ( AMotor.Pos            );   // tomo la posicion donde quedo
+   AMotor.Target[0] = AMotor.Pos[0];     // mq eudo con la posicion del motor actual
    AMotor.Target[1] = AMotor.Pos[1];
    AMotor.Target[2] = AMotor.Pos[2];
-   Target2Actual_Target ( &AMotor ) ;   // y tambien la actual posicion (es es en mm)
+   Target2Actual_Target ( &AMotor ) ;    // y tambien la actual posicion (es es en mm)
    AMotor.Line_Number = 0;
    Waiting_Line       = 0;
    AMotor.Command     = 2;
-   QMotor             = AMotor       ;  // y con esto sincronizo la cola de comandos con el motor
+   QMotor             = AMotor       ;   // y con esto sincronizo la cola de comandos con el motor
    return 0;
 }
  int Cmd_Actual_GCode_Line(struct tcp_pcb* tpcb, int argc, char *argv[])
@@ -281,6 +288,7 @@ int Cmd_Gcode_GL(struct tcp_pcb* tpcb, int argc, char *argv[])
       Vel              ( &QMotor );
       Accel            ( &QMotor );
       Acc_Dec_Steps    ( &QMotor );
+      Restringed_Vel   ( &QMotor );
       Run_Or_Goto      ( &QMotor );
       Delay_Until_Goto ( &QMotor );
    }
@@ -346,6 +354,7 @@ void Print_Motor_t(struct tcp_pcb* tpcb,Motor_t* M)
             "VelY=%f "
             "VelZ=%f \n"
             "Minor_Delay2Goto=%d \n"
+            "Rstringed GCode Vel=%f \n"
             "",
             M->Line_Number,
             M->Command,
@@ -383,7 +392,8 @@ void Print_Motor_t(struct tcp_pcb* tpcb,Motor_t* M)
             M->Vel[0],
             M->Vel[1],
             M->Vel[2],
-            M->Minor_Delay2Goto
+            M->Minor_Delay2Goto,
+            M->Restringed_GCode_Vel
             );
 }/*}}}*/
 
@@ -434,13 +444,18 @@ void Moves_Parser(void* nil)
          if(AMotor.Run_Goto==true) {
             Run     ( AMotor.Dir, AMotor.Vel );
             if(Busy_Read()==0)
-               xSemaphoreTake( Busy_Semphr,portMAX_DELAY );    //hasta aaca el movimiento fue cuadratico
-            xSemaphoreTake( Busy_Semphr,0 );    //hasta aaca el movimiento fue cuadratico
+               xSemaphoreTake( Busy_Semphr,portMAX_DELAY );                       // hasta aaca el movimiento fue cuadratico
+            xSemaphoreTake( Busy_Semphr,0 );                                      // hasta aaca el movimiento fue cuadratico
 
-            xSemaphoreTake( Stop_Semphr,pdMS_TO_TICKS(AMotor.Minor_Delay2Goto) );   //aca se mueve a V cte.
+            xSemaphoreTake( Stop_Semphr,pdMS_TO_TICKS(AMotor.Minor_Delay2Goto) ); // aca se mueve a V cte.
          }
-         xSemaphoreTake( Busy_Semphr,0 );    //hasta aaca el movimiento fue cuadratico
+         xSemaphoreTake( Busy_Semphr,0 );                                         // hasta aaca el movimiento fue cuadratico
          Goto ( AMotor.Target );
+//         if(Busy_Read()==0)
+//            xSemaphoreTake( Busy_Semphr,portMAX_DELAY );
+//         xSemaphoreTake( Busy_Semphr,0);
+//         vTaskDelay ( pdMS_TO_TICKS(200 )); // espero a que termine de moverrse
+         
       }
    }
 }

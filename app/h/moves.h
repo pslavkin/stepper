@@ -12,6 +12,7 @@ typedef struct
    uint8_t  Command                  ;
    uint8_t  Run_Goto                 ;
    float    Gcode_Vel                ;
+   float    Restringed_GCode_Vel;
    int16_t  Limited_Vel              ;
    uint8_t  Speed_Scale              ;
    uint32_t Minor_Delay2Goto         ;
@@ -60,6 +61,7 @@ void     Target2Actual_Target  ( Motor_t* M                                   );
 void Limit_Max_Vel(Motor_t* M);
 int Cmd_Pause(struct tcp_pcb* tpcb, int argc, char *argv[]);
 int Cmd_Resume(struct tcp_pcb* tpcb, int argc, char *argv[]);
+void Restringed_Vel(Motor_t* M);
 
 #endif
 

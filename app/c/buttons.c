@@ -37,10 +37,10 @@ void Init_Busy(void)
 
 void BusyIntHandler(void)
 {
-   BaseType_t Context_Change=pdFALSE            ;
+   BaseType_t Context_Change=pdFALSE;
    MAP_GPIOIntClear      ( BUSY_PORT, BUSY_PIN         );
    xSemaphoreGiveFromISR ( Busy_Semphr,&Context_Change );
-   Busy_Flag=0;
+//   Busy_Flag=0;
    portYIELD_FROM_ISR    ( Context_Change              );
 }
 
