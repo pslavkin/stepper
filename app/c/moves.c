@@ -15,10 +15,10 @@
 
 Motor_t QMotor         = {.Command=2,0}; // Queue motor
 Motor_t AMotor;               // es la que se esta ejecutando en cada instante..
-uint8_t    Speed_Scale   = 10; // porcentaje de 0.1 a 9.9 pero 1 vale 0.1, y 100 vale 10 para usar un entero
-uint16_t Limited_Speed = 10;  // en  mm/seg
+uint8_t    Speed_Scale   = 100; // porcentaje de 0.1 a 9.9 pero 1 vale 0.1, y 100 vale 10 para usar un entero
+uint16_t Limited_Speed   = 50;  // en  mm/seg
 uint16_t uStep2mm[NUM_AXES]={X_SCALE,Y_SCALE,Z_SCALE};
-float    Acc_Ramp=1000, Dec_Ramp=1000;
+float    Acc_Ramp=2000, Dec_Ramp=2000;
 uint32_t Waiting_Line=0;
 bool Paused_Flag=0;
 
@@ -48,7 +48,7 @@ void Dir(Motor_t* M)
 void Delta(Motor_t* M)
 {
    uint8_t i;
-   for(i=0;i<NUM_AXES;i++) {
+   for(i=0;i<NUM_AXES;i++)
       if(M->Dir[i]==0) {
          M->Delta[i]        = M->Pos[i]-M->Target[i];
          M->Actual_Delta[i] = M->Actual_Pos[i]-M->Actual_Target[i];
@@ -57,22 +57,18 @@ void Delta(Motor_t* M)
          M->Delta[i]        = M->Target[i]-M->Pos[i];
          M->Actual_Delta[i] = M->Actual_Target[i]-M->Actual_Pos[i];
       }
-     // UART_ETHprintf(UART_MSG,"delta=%d\n",M->Delta[i]);
-   }
 }
-
 
 void Restringed_Vel(Motor_t* M)
 {
    uint8_t i;
    M->Restringed_GCode_Vel= sqrt((2*M->Actual_Distance)/((1/Acc_Ramp)+(1/Dec_Ramp)));
-   M->Restringed_GCode_Vel=(M->Restringed_GCode_Vel*10)/Speed_Scale;
-   if(M->Restringed_GCode_Vel>(4*M->Gcode_Vel))
-      M->Restringed_GCode_Vel=M->Gcode_Vel;
+   if(M->Restringed_GCode_Vel>(4*M->Scaled_Vel))
+      M->Restringed_GCode_Vel=M->Scaled_Vel;
    else
       M->Restringed_GCode_Vel/=4;
    for(i=0;i<NUM_AXES;i++)
-      M->Restringed_Max_Vel[i]=(M->Restringed_GCode_Vel*Speed_Scale*uStep2mm[i])/(10*MICROSTEP); // la vel esta en pasos no micropasos
+      M->Restringed_Max_Vel[i]=(M->Restringed_GCode_Vel*uStep2mm[i])/MICROSTEP; // la vel esta en pasos no micropasos
 }
 
 void Acc_Dec_Steps(Motor_t* M)
@@ -81,53 +77,20 @@ void Acc_Dec_Steps(Motor_t* M)
    for(i=0;i<NUM_AXES;i++) {
       M->Acc_Step[i]= ((M->Vel[i]*M->Vel[i])/M->Acc[i])*((float)(MICROSTEP/2));
       M->Dec_Step[i]= ((M->Vel[i]*M->Vel[i])/M->Dec[i])*((float)(MICROSTEP/2));
-//      UART_ETHprintf(UART_MSG,"step to acc=%d dec=%d\n",M->Acc_Step[i],M->Dec_Step[i]);
    }
-}
-bool Time2Goto(Motor_t* M)
-{
-   uint8_t i;
-   bool Ans=false;
-   for(i=0;i<NUM_AXES;i++) {
-      if(M->Delta[i]<0 || M->Dec_Step[i]>=M->Delta[i]) {
-         Ans=true;
-         break;
-      }
-   }
-   return Ans;
 }
 void Delay_Until_Goto(Motor_t* M)
 {
-   M->Minor_Delay2Goto=0;
-   uint32_t Aux_Delay=0;
-
-   if(M->Run_Goto==true) {
-      uint8_t i;
-      for(i=0;i<NUM_AXES;i++)
-         if(M->Vel[i]>0) {
-
-            //TODO no deberia restar el de Acc step y en la tarea despues del run, me siento a esperar.. pero no me funca.. tengo que  sumar este y despues del run revisar el flag de busy,.......... no se porqu+e
-            //ya se porque, porque para calcular el tiempo de aceleracion tengo que usar otra ecuacion cuadratica, no es lneal, por eso me conviene esperar el flag y no hacer la cuenta
-            Aux_Delay=((M->Delta[i]-M->Dec_Step[i]-M->Acc_Step[i])*  960)/(MICROSTEP*M->Vel[i]); // trayecto a velocidad constante
-            if(M->Minor_Delay2Goto==0 || Aux_Delay<M->Minor_Delay2Goto)
-               M->Minor_Delay2Goto=Aux_Delay;
-         }
-   }
-}
-
-void Run_Or_Goto(Motor_t* M)
-{
+   M->Minor_Delay2Goto = 0;
+   uint32_t Aux_Delay;
    uint8_t i;
-   M->Run_Goto=false;   //si todos los ejes son cero delta, vamos a goto que no hara nada..
 
-   for(i=0;i<NUM_AXES ;i++)
-      if(M->Delta[i]>0) {
-         if((M->Acc_Step[i]+M->Dec_Step[i]+(M->Vel[i]*MICROSTEP)*0.02)>M->Delta[i]) {
-            M->Run_Goto=false;                                 //con que uno solo no este de acuerdo.. vamos con goto
-            break;
-         }
-         else M->Run_Goto=true;
-      }
+   for(i=0;i<NUM_AXES;i++)
+      if(M->Vel[i]>0 && M->Delta[i]>(M->Dec_Step[i]+M->Acc_Step[i])) {
+         Aux_Delay= DELAY_UNTIL_GOTO_MARGIN*( M->Vel[i]/M->Acc[i] + (M->Delta[i]-M->Dec_Step[i]-M->Acc_Step[i])/(MICROSTEP*M->Vel[i]));
+         if(M->Minor_Delay2Goto==0 || Aux_Delay<M->Minor_Delay2Goto)
+            M->Minor_Delay2Goto=Aux_Delay;
+     }
 }
 void Distance(Motor_t* M)
 {
@@ -183,6 +146,9 @@ int Cmd_Get_Queue_Space(struct tcp_pcb* tpcb, int argc, char *argv[])
 {
    xQueueReset(Moves_Queue);             // vacio la cola de comandos
    xSemaphoreGive(Stop_Semphr);
+   xSemaphoreTake(Stop_Semphr,0);
+   while(Busy_Read()==0)
+      vTaskDelay ( pdMS_TO_TICKS(100 )); // espero a que termine de moverrse
    Stop();                               // mano un stop por si acaso...podria haber estado moviemndose
    while(Busy_Read()==0)
       vTaskDelay ( pdMS_TO_TICKS(100 )); // espero a que termine de moverrse
@@ -282,7 +248,7 @@ int Cmd_Gcode_GL(struct tcp_pcb* tpcb, int argc, char *argv[])
             QMotor.Target[2]        = QMotor.Actual_Target[2]*uStep2mm[2];
             break;
          case 'F':
-            Set_Max_Vel(&QMotor,ustrtof(argv[i]+1,NULL)/60,Limited_Speed,Speed_Scale);//ustrtof(argv[i]+1,NULL)/30); //la vel viene x minuto.. yo quiero por segundo
+            Set_Max_Vel(&QMotor,ustrtof(argv[i]+1,NULL)/60,Limited_Speed,Speed_Scale);
             break;
          default:
             break;
@@ -297,10 +263,9 @@ int Cmd_Gcode_GL(struct tcp_pcb* tpcb, int argc, char *argv[])
       Vel              ( &QMotor );
       Accel            ( &QMotor );
       Acc_Dec_Steps    ( &QMotor );
-      Run_Or_Goto      ( &QMotor );
       Delay_Until_Goto ( &QMotor );
+      xQueueSend(Moves_Queue,&QMotor,portMAX_DELAY);
    }
-   xQueueSend(Moves_Queue,&QMotor,portMAX_DELAY);
    return 0;
 }
 void Limit_Max_Vel(Motor_t* M)
@@ -318,6 +283,7 @@ void Set_Max_Vel(Motor_t* M,float Vel,uint16_t Limit,uint8_t Scale)
    Vel*=(float)Scale/10;
    if(Vel>Limited_Speed)                            // limio vel
       Vel=Limited_Speed;
+   M->Scaled_Vel = Vel;
    for(i=0;i<NUM_AXES;i++)
       M->Max_Vel[i]=(Vel*uStep2mm[i])/MICROSTEP; // la vel esta en pasos no micropasos
 }
@@ -327,6 +293,9 @@ void Print_Motor_t(struct tcp_pcb* tpcb,Motor_t* M)
       UART_ETHprintf(tpcb,
             "N=%d "
             "Command=%d \n"
+            "DirX=%d "
+            "DirY=%d "
+            "DirZ=%d\n"
             "TargetX=%d "
             "TargetY=%d "
             "TargetZ=%d \n"
@@ -346,9 +315,9 @@ void Print_Motor_t(struct tcp_pcb* tpcb,Motor_t* M)
            "Step_DecX=%d "
            "Step_DecY=%d "
            "Step_DecZ=%d \n"
-//            "PosX=%d "
-//            "PosY=%d "
-//            "PosZ=%d \n"
+            "PosX=%d "
+            "PosY=%d "
+            "PosZ=%d \n"
 //            "SpeedX=%f "
 //            "SpeedY=%f "
 //            "SpeedZ=%f \n"
@@ -367,6 +336,9 @@ void Print_Motor_t(struct tcp_pcb* tpcb,Motor_t* M)
             "",
             M->Line_Number,
             M->Command,
+            M->Dir[0],
+            M->Dir[1],
+            M->Dir[2],
             M->Target[0],
             M->Target[1],
             M->Target[2],
@@ -386,9 +358,9 @@ void Print_Motor_t(struct tcp_pcb* tpcb,Motor_t* M)
             M->Dec_Step[0],
             M->Dec_Step[1],
             M->Dec_Step[2],
-//            M->Pos[0],
-//            M->Pos[1],
-//            M->Pos[2],
+            M->Pos[0],
+            M->Pos[1],
+            M->Pos[2],
 //            M->Speed[0],
 //            M->Speed[1],
 //            M->Speed[2],
@@ -423,8 +395,8 @@ void Moves_Parser(void* nil)
    Moves_Queue= xQueueCreate(MOVES_QUEUE_SIZE,sizeof(Motor_t));
    Stop_Semphr = xSemaphoreCreateBinary     ( );
 
-   Set_Max_Vel      ( &AMotor ,10 ,Limited_Speed,Speed_Scale);
-   Set_Max_Vel      ( &QMotor ,10 ,Limited_Speed,Speed_Scale);
+   Set_Max_Vel      ( &AMotor ,50 ,Limited_Speed,Speed_Scale);
+   Set_Max_Vel      ( &QMotor ,50 ,Limited_Speed,Speed_Scale);
    AMotor.Line_Number = 0;
    AMotor.Command     = 2; //invalido al inicio
 
@@ -432,45 +404,32 @@ void Moves_Parser(void* nil)
       while(Paused_Flag==true)
          vTaskDelay(pdMS_TO_TICKS(100));
       xQueueReceive(Moves_Queue,&AMotor,portMAX_DELAY);
-      if(AMotor.Command==0 || AMotor.Command==1)
-      {
-         if(AMotor.Limited_Vel != Limited_Speed ||
-            AMotor.Speed_Scale != Speed_Scale) {
-            Set_Max_Vel(&AMotor,AMotor.Gcode_Vel,Limited_Speed,Speed_Scale);
-            Restringed_Vel   ( &AMotor );
-            Vel              ( &AMotor );
-            Accel            ( &AMotor );
-            Acc_Dec_Steps    ( &AMotor );
-            Run_Or_Goto      ( &AMotor );
-            Delay_Until_Goto ( &AMotor );
+      if(QMotor.Actual_Distance>0 && QMotor.Command==1) {
+         if(AMotor.Limited_Vel != Limited_Speed || AMotor.Speed_Scale != Speed_Scale) {
+            Set_Max_Vel      ( &AMotor,AMotor.Gcode_Vel,Limited_Speed,Speed_Scale );
+            Restringed_Vel   ( &AMotor                                            );
+            Vel              ( &AMotor                                            );
+            Accel            ( &AMotor                                            );
+            Acc_Dec_Steps    ( &AMotor                                            );
+            Delay_Until_Goto ( &AMotor                                            );
          }
+         while(xSemaphoreTake( Busy_Semphr,0)==pdTRUE)
+            ;
          if(Busy_Read()==0)
             xSemaphoreTake( Busy_Semphr,portMAX_DELAY );
-         xSemaphoreTake( Busy_Semphr,0);
 
          Set_Acc       ( AMotor.Acc           );
          Set_Dec       ( AMotor.Dec           );
          Set_Max_Speed ( AMotor.Vel4Acc_Limit );
 
-          {
-         //if(AMotor.Run_Goto==true) {
- //           UART_ETHprintf(UART_MSG,"run\n");
-            Run     ( AMotor.Dir, AMotor.Vel );
-            if(Busy_Read()==0)
-               xSemaphoreTake( Busy_Semphr,portMAX_DELAY );                       // hasta aaca el movimiento fue cuadratico
-            xSemaphoreTake( Busy_Semphr,0 );                                      // hasta aaca el movimiento fue cuadratico
-
-            xSemaphoreTake( Stop_Semphr,pdMS_TO_TICKS(AMotor.Minor_Delay2Goto) ); // aca se mueve a V cte.
+         if(AMotor.Minor_Delay2Goto> 4) {
+            Run ( AMotor.Dir, AMotor.Vel );
+            if(AMotor.Minor_Delay2Goto>20)
+               xSemaphoreTake ( Stop_Semphr,pdMS_TO_TICKS(AMotor.Minor_Delay2Goto )); // aca se mueve a V cte.
+            else
+               Delay_Useg(AMotor.Minor_Delay2Goto*DELAY_UNTIL_GOTO_MARGIN);
          }
-         xSemaphoreTake( Busy_Semphr,0 );                                         // hasta aaca el movimiento fue cuadratico
-//         UART_ETHprintf(UART_MSG,"goto\n");
-         //Goto ( AMotor.Target );
-         Goto_Dir ( AMotor.Target,AMotor.Dir );
-//         if(Busy_Read()==0)
-//            xSemaphoreTake( Busy_Semphr,portMAX_DELAY );
-//         xSemaphoreTake( Busy_Semphr,0);
-//         vTaskDelay ( pdMS_TO_TICKS(200 )); // espero a que termine de moverrse
-         
+         Goto_Dir       ( AMotor.Target,AMotor.Dir                          ) ;
       }
    }
 }

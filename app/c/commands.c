@@ -593,7 +593,7 @@ int Cmd_Acc     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
    }
    else {
       Get_Acc(V);
-      UART_ETHprintf(tpcb,"[step/seg]2= %f %f %f\n",V[0],V[1],V[2]);
+      UART_ETHprintf(tpcb,"[step/seg2]= %f %f %f\n",V[0],V[1],V[2]);
    }
    return 0;
 }/*}}}*/
@@ -608,7 +608,7 @@ int Cmd_Dec     ( struct tcp_pcb* tpcb, int argc, char *argv[] )
    }
    else {
       Get_Dec(V);
-      UART_ETHprintf(tpcb,"[step/seg]2= %f %f %f\n",V[0],V[1],V[2]);
+      UART_ETHprintf(tpcb,"[step/seg2]= %f %f %f\n",V[0],V[1],V[2]);
    }
    return 0;
 }/*}}}*/

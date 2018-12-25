@@ -17,5 +17,12 @@
 #define USR_FLASH_START         0x00020000                          //donde te plazca que no pise codigo. y que este alineado a 4
 #define USR_FLASH_END           0x00028000                          // 2 bloques de 16 minimo para garantizar lectura
 #define USR_FLASH_SIZE          (USR_FLASH_END-USR_FLASH_START)/128 // no puede haber mas de 128 bloques.. y como cada pedazo borrable de flas es de 16k. 32k/128 son 256 bytes por cada estructura de parametros.. por ahora creo que no se que poner que ocupe 256 bytes.. asi que sobra.. sino se baja este numer y chau
+#define DELAY_UNTIL_GOTO_MARGIN 980 //margen para el calculo de tiempo entre que tiro run y salta goto.. si me paso de 1000, el motor pega la vuelta para llegar a destino.. 1000 es el teorico, pero tengo que dejar margen.. si dejo mucho el goto tiene tiempo para cambiar las velocidades y distorciona el camino
+
+#define X_SCALE          600  // micropasos por mm
+#define Y_SCALE          600  // micropasos por mm
+#define Z_SCALE          2560 // micropasos por mm
+#define MICROSTEP        128
+
 
 #endif // __COMMANDS_H__
