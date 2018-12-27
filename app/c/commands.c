@@ -108,6 +108,8 @@ tCmdLineEntry Motor_Cmd_Table[] =
     { "halt"    ,Cmd_Halt_GCode_Queue  ,": stop the machine and rst available space in gcode space"                                                     },
     { "line"    ,Cmd_Actual_GCode_Line ,": get actual gcode line"                                                     },
     { "K"       ,Cmd_Kombo_Data        ,": get kombo data to software"                                                     },
+    { "rstxy"   ,Cmd_Rst_Xy            ,": reset xy from Qmotor"                                                     },
+    { "rstz"    ,Cmd_Rst_Z             ,": reset Z from Qmotor"                                                     },
     { "?"       ,Cmd_Help              ,": help"                                                                               },
     { "<"       ,Cmd_Back2Main         ,": back"                                                                               },
     { 0         ,0                     ,0                                                                                      }

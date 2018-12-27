@@ -53,6 +53,8 @@ void     Limit_Max_Vel         ( Motor_t* M                                     
 int      Cmd_Pause             ( struct tcp_pcb* tpcb, int argc, char *argv[]      );
 int      Cmd_Resume            ( struct tcp_pcb* tpcb, int argc, char *argv[]      );
 void     Restringed_Vel        ( Motor_t* M                                        );
+int      Cmd_Rst_Z             ( struct tcp_pcb* tpcb, int argc, char *argv[]      );
+int      Cmd_Rst_Xy            ( struct tcp_pcb* tpcb, int argc, char *argv[]      );
 
 #endif
 

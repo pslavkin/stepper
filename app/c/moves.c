@@ -13,14 +13,15 @@
 #include "task.h"
 #include "state_machine.h"
 
-Motor_t QMotor         = {.Command=2,0}; // Queue motor
-Motor_t AMotor;               // es la que se esta ejecutando en cada instante..
-uint8_t    Speed_Scale   = 100; // porcentaje de 0.1 a 9.9 pero 1 vale 0.1, y 100 vale 10 para usar un entero
-uint16_t Limited_Speed   = 50;  // en  mm/seg
-uint16_t uStep2mm[NUM_AXES]={X_SCALE,Y_SCALE,Z_SCALE};
-float    Acc_Ramp=2000, Dec_Ramp=2000;
-uint32_t Waiting_Line=0;
-bool Paused_Flag=0;
+Motor_t QMotor                 = {.Command = 2,0 };// Queue motor
+Motor_t AMotor;                          // es la que se esta ejecutando en cada instante..
+uint8_t     Speed_Scale        = 100;    // porcentaje de 0.1 a 9.9 pero 1 vale 0.1, y 100 vale 10 para usar un entero
+uint16_t    Limited_Speed      = 50;     // en  mm/seg
+uint16_t    uStep2mm[NUM_AXES] = {X_SCALE,Y_SCALE,Z_SCALE};
+float       Acc_Ramp           = 2000;
+float       Dec_Ramp           = 2000;
+uint32_t    Waiting_Line       = 0;
+bool        Paused_Flag        = 0;
 
 bool Stop_Now=false;
 QueueHandle_t Moves_Queue;
@@ -207,6 +208,21 @@ int Cmd_Limited_Speed(struct tcp_pcb* tpcb, int argc, char *argv[])
 int Cmd_Gcode_Print_Motor(struct tcp_pcb* tpcb, int argc, char *argv[])
 {
    Print_Motor_t(tpcb,&AMotor);
+   Print_Motor_t(tpcb,&QMotor);
+   return 0;
+}
+int Cmd_Rst_Z(struct tcp_pcb* tpcb, int argc, char *argv[])
+{
+   QMotor.Target[2]        =0;
+   QMotor.Actual_Target[2] =0;
+   return 0;
+}
+int Cmd_Rst_Xy(struct tcp_pcb* tpcb, int argc, char *argv[])
+{
+   QMotor.Target[0]        =0;
+   QMotor.Target[1]        =0;
+   QMotor.Actual_Target[0] =0;
+   QMotor.Actual_Target[1] =0;
    return 0;
 }
 
@@ -230,6 +246,9 @@ int Cmd_Gcode_GL(struct tcp_pcb* tpcb, int argc, char *argv[])
                Change=true;
             }
             else return 0;
+            break;
+         case 'A':
+               Change=true;
             break;
          case 'G':
             QMotor.Command=atoi(argv[i]+1);
@@ -404,7 +423,7 @@ void Moves_Parser(void* nil)
       while(Paused_Flag==true)
          vTaskDelay(pdMS_TO_TICKS(100));
       xQueueReceive(Moves_Queue,&AMotor,portMAX_DELAY);
-      if(QMotor.Actual_Distance>0 && QMotor.Command==1) {
+      if(AMotor.Actual_Distance>0 && AMotor.Command==1) {
          if(AMotor.Limited_Vel != Limited_Speed || AMotor.Speed_Scale != Speed_Scale) {
             Set_Max_Vel      ( &AMotor,AMotor.Gcode_Vel,Limited_Speed,Speed_Scale );
             Restringed_Vel   ( &AMotor                                            );
