@@ -2,7 +2,7 @@
 #define __OPT_H__
 
 //comentar para usar steppers de debug
-//#define CNC_STEPPERS
+#define CNC_STEPPERS
 
 #define APP_INPUT_BUF_SIZE      64
 #define UART_BUFFERED
